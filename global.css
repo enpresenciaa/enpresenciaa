@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "uniwind";
+
+
+
+@layer theme {
+  :root {
+    @variant light {
+      --color-background: #fafafa;
+      --color-background-element: #f3f4f6;
+      --color-foreground: #1a1a1a;
+      --color-text: #1a1a1a;
+      --color-text-secondary: #6b7280;
+
+      --color-primary: #0f0f0f;
+      --color-primary-foreground: #ffffff;
+
+      --color-muted: #f1f5f9;
+      --color-muted-foreground: #a8a8a8;
+
+      --color-card: #ffffff;
+      --color-card-foreground: #1a1a1a;
+
+      --color-border: #e2e8f0;
+      --color-destructive: #ef4444;
+
+      --color-success: #22c55e;
+      --color-warning: #f59e0b;
+    }
+    @variant dark {
+      --color-background: #0a0a0a;
+      --color-background-element: #1a1a1a;
+      --color-foreground: #fafafa;
+      --color-text: #fafafa;
+      --color-text-secondary: #a1a1aa;
+
+      --color-primary: #818cf8;
+      --color-primary-foreground: #ffffff;
+
+      --color-muted: #27272a;
+      --color-muted-foreground: #71717a;
+
+      --color-card: #18181b;
+      --color-card-foreground: #fafafa;
+
+      --color-border: #27272a;
+      --color-destructive: #f87171;
+
+      --color-success: #4ade80;
+      --color-warning: #fbbf24;
+    }
+
+    /* Gold theme - Yellow/gold accent */
+    @variant gold {
+      --color-background: #1a1b1c;
+      --color-background-element: #2a2b2e;
+      --color-foreground: #ffffff;
+      --color-text: #ffffff;
+      --color-text-secondary: #9ca3af;
+
+      --color-primary: #eab308;
+      --color-primary-foreground: #1a1b1c;
+
+      --color-muted: #424449;
+      --color-muted-foreground: #71717a;
+
+      --color-card: #2a2b2e;
+      --color-card-foreground: #ffffff;
+
+      --color-border: #424449;
+      --color-destructive: #f87171;
+
+      --color-success: #4ade80;
+      --color-warning: #fbbf24;
+    }
+
+    /* Coral theme - Coral/red accent */
+    @variant coral {
+      --color-background: #1a1b1c;
+      --color-background-element: #2a2b2e;
+      --color-foreground: #ffffff;
+      --color-text: #ffffff;
+      --color-text-secondary: #9ca3af;
+
+      --color-primary: #f87171;
+      --color-primary-foreground: #1a1b1c;
+
+      --color-muted: #424449;
+      --color-muted-foreground: #71717a;
+
+      --color-card: #2a2b2e;
+      --color-card-foreground: #ffffff;
+
+      --color-border: #424449;
+      --color-destructive: #ef4444;
+
+      --color-success: #4ade80;
+      --color-warning: #fbbf24;
+    }
+
+    /* Ocean theme - Blue/lavender accent */
+    @variant ocean {
+      --color-background: #1a1b1c;
+      --color-background-element: #2a2b2e;
+      --color-foreground: #ffffff;
+      --color-text: #ffffff;
+      --color-text-secondary: #9ca3af;
+
+      --color-primary: #818cf8;
+      --color-primary-foreground: #1a1b1c;
+
+      --color-muted: #424449;
+      --color-muted-foreground: #71717a;
+
+      --color-card: #2a2b2e;
+      --color-card-foreground: #ffffff;
+
+      --color-border: #424449;
+      --color-destructive: #f87171;
+
+      --color-success: #4ade80;
+      --color-warning: #fbbf24;
+    }
+
+    /* Forest theme - Green accent */
+    @variant forest {
+      --color-background: #1a1b1c;
+      --color-background-element: #2a2b2e;
+      --color-foreground: #ffffff;
+      --color-text: #ffffff;
+      --color-text-secondary: #9ca3af;
+
+      --color-primary: #4ade80;
+      --color-primary-foreground: #1a1b1c;
+
+      --color-muted: #424449;
+      --color-muted-foreground: #71717a;
+
+      --color-card: #2a2b2e;
+      --color-card-foreground: #ffffff;
+
+      --color-border: #424449;
+      --color-destructive: #f87171;
+
+      --color-success: #22c55e;
+      --color-warning: #fbbf24;
+    }
+
+    /* Violet theme - Purple accent */
+    @variant violet {
+      --color-background: #1a1b1c;
+      --color-background-element: #2a2b2e;
+      --color-foreground: #ffffff;
+      --color-text: #ffffff;
+      --color-text-secondary: #9ca3af;
+
+      --color-primary: #c084fc;
+      --color-primary-foreground: #1a1b1c;
+
+      --color-muted: #424449;
+      --color-muted-foreground: #71717a;
+
+      --color-card: #2a2b2e;
+      --color-card-foreground: #ffffff;
+
+      --color-border: #424449;
+      --color-destructive: #f87171;
+
+      --color-success: #4ade80;
+      --color-warning: #fbbf24;
+    }
+  }
+}
