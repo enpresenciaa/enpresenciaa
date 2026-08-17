@@ -95,7 +95,12 @@ export default antfu(
   },
   {
     name: "config-files",
-    files: ["**/app.config.ts", "**/env.ts", "**/env.js"],
+    files: ["**/app.config.ts", "**/app-env.js", "**/env.ts", "**/env.js"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+      },
+    },
     rules: {
       "antfu/no-import-dist": "off",
       "node/prefer-global/process": "off",

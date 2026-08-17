@@ -4,8 +4,6 @@
  *
  * @type {'local' | 'preview' | 'production'}
  */
-const process = require("node:process");
-
 const APP_ENV = process.env.EXPO_PUBLIC_APP_ENV ?? "local";
 
 const { version } = require("./package.json");
