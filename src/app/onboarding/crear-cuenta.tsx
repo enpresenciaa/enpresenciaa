@@ -8,6 +8,7 @@ import { AppCheckbox } from "@/components/onboarding/AppCheckbox";
 import { AppInput } from "@/components/onboarding/AppInput";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OAuthOptions } from "@/components/onboarding/OAuthOptions";
+import type { OAuthProvider } from "@/components/onboarding/OAuthOptions";
 import { PhoneNumberInput } from "@/components/onboarding/PhoneNumberInput";
 import { colors, fonts } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -22,9 +23,11 @@ function isValidEmail(value: string): boolean {
 
 export default function CreateAccountRoute() {
   const router = useRouter();
-  const { signUpWithPassword } = useAuth();
+  const { signInWithGoogle, signUpWithPassword } = useAuth();
+  const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const { control, formState: { errors, isSubmitting, isValid }, getValues, handleSubmit, trigger } = useForm<FormValues>({
     defaultValues: { confirmPassword: "", countryCode: "+52", email: "", fullName: "", password: "", phoneNumber: "", privacy: false, terms: false },
     mode: "onChange",
@@ -54,6 +57,25 @@ export default function CreateAccountRoute() {
       submitLockRef.current = false;
     }
   });
+
+  async function handleOAuthPress(provider: OAuthProvider) {
+    if (provider !== "Google" || oauthLockRef.current) {
+      return;
+    }
+
+    oauthLockRef.current = true;
+    setAuthError(null);
+    setIsOAuthLoading(true);
+
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error));
+    } finally {
+      oauthLockRef.current = false;
+      setIsOAuthLoading(false);
+    }
+  }
 
   return (
     <OnboardingScreen compact title="Crea tu cuenta">
@@ -95,7 +117,14 @@ export default function CreateAccountRoute() {
       </View>
       {authError ? <Text accessibilityRole="alert" style={styles.authError}>{authError}</Text> : null}
       <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>Registrarme</AppButton>
-      <OAuthOptions separatorText="o" title="Regístrate con" />
+      <OAuthOptions
+        disabled={isSubmitting || isOAuthLoading}
+        enabledProviders={["Google"]}
+        loadingProvider={isOAuthLoading ? "Google" : null}
+        onProviderPress={provider => void handleOAuthPress(provider)}
+        separatorText="o"
+        title="Regístrate con"
+      />
       <View style={styles.footer}>
         <Pressable accessibilityRole="link" onPress={() => router.push("/onboarding/login")} style={styles.linkButton}>
           <Text style={styles.link}>¿Ya tienes cuenta? <Text style={styles.linkHighlight}>Inicia sesión</Text></Text>

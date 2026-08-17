@@ -25,10 +25,12 @@ function isValidEmail(value: string): boolean {
 
 export default function LoginRoute() {
   const router = useRouter();
-  const { signInWithPassword } = useAuth();
+  const { signInWithGoogle, signInWithPassword } = useAuth();
   const passwordRef = useRef<TextInput>(null);
+  const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const { height } = useWindowDimensions();
   const { control, formState: { errors, isSubmitting, isValid }, handleSubmit } = useForm<FormValues>({ defaultValues: { email: "", password: "" }, mode: "onChange" });
 
@@ -53,9 +55,23 @@ export default function LoginRoute() {
     // TODO(auth): conectar recuperación de contraseña cuando exista el flujo.
   }
 
-  function handleOAuthPress(provider: OAuthProvider) {
-    // TODO(auth): conectar OAuth real y sus credenciales para Google, Apple y Facebook.
-    void provider;
+  async function handleOAuthPress(provider: OAuthProvider) {
+    if (provider !== "Google" || oauthLockRef.current) {
+      return;
+    }
+
+    oauthLockRef.current = true;
+    setAuthError(null);
+    setIsOAuthLoading(true);
+
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error));
+    } finally {
+      oauthLockRef.current = false;
+      setIsOAuthLoading(false);
+    }
   }
 
   return (
@@ -120,7 +136,13 @@ export default function LoginRoute() {
               </Pressable>
               {authError ? <Text accessibilityRole="alert" style={styles.authError}>{authError}</Text> : null}
               <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>Iniciar sesión</AppButton>
-              <OAuthOptions disabled={isSubmitting} onProviderPress={handleOAuthPress} separatorText="o continúa con" />
+              <OAuthOptions
+                disabled={isSubmitting || isOAuthLoading}
+                enabledProviders={["Google"]}
+                loadingProvider={isOAuthLoading ? "Google" : null}
+                onProviderPress={provider => void handleOAuthPress(provider)}
+                separatorText="o continúa con"
+              />
               <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push("/onboarding/crear-cuenta")} style={styles.createButton}>
                 <Text style={styles.createText}>¿No tienes cuenta? <Text style={styles.createHighlight}>Crear cuenta</Text></Text>
               </Pressable>
