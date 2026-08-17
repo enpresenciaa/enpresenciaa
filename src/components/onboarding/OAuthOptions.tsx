@@ -1,5 +1,5 @@
 import { FontAwesome6 } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts } from "@/config/onboarding-theme";
 
@@ -8,6 +8,8 @@ export type OAuthProvider = typeof oauthProviders[number];
 
 type Props = {
   disabled?: boolean;
+  enabledProviders?: readonly OAuthProvider[];
+  loadingProvider?: OAuthProvider | null;
   onProviderPress?: (provider: OAuthProvider) => void;
   separatorText: string;
   title?: string;
@@ -32,28 +34,32 @@ function OAuthLogo({ provider }: { provider: OAuthProvider }) {
   );
 }
 
-export function OAuthOptions({ disabled = false, onProviderPress, separatorText, title }: Props) {
-  const unavailable = disabled || !onProviderPress;
-
+export function OAuthOptions({ disabled = false, enabledProviders = [], loadingProvider = null, onProviderPress, separatorText, title }: Props) {
   return (
     <View accessibilityLabel="Opciones de autenticación social" style={styles.block}>
       <View style={styles.separator}><View style={styles.line} /><Text style={styles.or}>{separatorText}</Text><View style={styles.line} /></View>
       {title ? <Text style={styles.title}>{title}</Text> : null}
       <View style={styles.row}>
-        {oauthProviders.map(provider => (
-          <Pressable
-            accessibilityLabel={`${provider}${unavailable ? ", próximamente" : ""}`}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: unavailable }}
-            disabled={unavailable}
-            key={provider}
-            onPress={() => onProviderPress?.(provider)}
-            style={({ pressed }) => [styles.option, pressed && styles.pressed]}
-          >
-            <OAuthLogo provider={provider} />
-            <Text style={styles.label}>{provider}</Text>
-          </Pressable>
-        ))}
+        {oauthProviders.map(provider => {
+          const available = enabledProviders.includes(provider) && Boolean(onProviderPress);
+          const unavailable = disabled || !available;
+          const loading = loadingProvider === provider;
+
+          return (
+            <Pressable
+              accessibilityLabel={`${provider}${available ? "" : ", próximamente"}`}
+              accessibilityRole="button"
+              accessibilityState={{ busy: loading, disabled: unavailable }}
+              disabled={unavailable}
+              key={provider}
+              onPress={() => onProviderPress?.(provider)}
+              style={({ pressed }) => [styles.option, unavailable && styles.disabled, pressed && !unavailable && styles.pressed]}
+            >
+              {loading ? <ActivityIndicator color={colors.primary} /> : <OAuthLogo provider={provider} />}
+              <Text style={styles.label}>{provider}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -61,6 +67,7 @@ export function OAuthOptions({ disabled = false, onProviderPress, separatorText,
 
 const styles = StyleSheet.create({
   block: { marginTop: 13 },
+  disabled: { opacity: 0.45 },
   googleAccent: { left: 0, position: "absolute", top: 0 },
   googleBlue: { color: "#4285F4" },
   googleGreen: { color: "#34A853", height: 8, overflow: "hidden", top: 16 },

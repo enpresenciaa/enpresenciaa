@@ -1,6 +1,11 @@
 import { AuthApiError } from "@supabase/supabase-js";
+import * as QueryParams from "expo-auth-session/build/QueryParams";
+import * as WebBrowser from "expo-web-browser";
 
+import { getAuthRedirectUrl } from "@/features/auth/utils/auth-redirect";
 import { supabase } from "@/lib/supabase";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export interface EmailPasswordCredentials {
   email: string;
@@ -9,6 +14,17 @@ export interface EmailPasswordCredentials {
 
 export interface SignUpResult {
   requiresEmailConfirmation: boolean;
+}
+
+export type OAuthResult = "success" | "cancelled";
+
+type OAuthFlowErrorCode = "configuration" | "provider";
+
+class OAuthFlowError extends Error {
+  constructor(readonly code: OAuthFlowErrorCode) {
+    super(code);
+    this.name = "OAuthFlowError";
+  }
 }
 
 const authErrorMessages: Record<string, string> = {
@@ -46,7 +62,82 @@ export async function signUpWithPassword({ email, password }: EmailPasswordCrede
   return { requiresEmailConfirmation: data.session === null };
 }
 
+export async function createSessionFromUrl(url: string): Promise<OAuthResult> {
+  const { errorCode, params } = QueryParams.getQueryParams(url);
+
+  if (errorCode === "access_denied") {
+    return "cancelled";
+  }
+
+  if (errorCode) {
+    throw new OAuthFlowError("provider");
+  }
+
+  const accessToken = params.access_token;
+  const refreshToken = params.refresh_token;
+
+  if (!accessToken || !refreshToken) {
+    throw new OAuthFlowError("configuration");
+  }
+
+  const { error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return "success";
+}
+
+export async function signInWithGoogle(): Promise<OAuthResult> {
+  const redirectTo = getAuthRedirectUrl();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data.url) {
+    throw new OAuthFlowError("configuration");
+  }
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+  if (result.type === "cancel" || result.type === "dismiss") {
+    return "cancelled";
+  }
+
+  if (result.type !== "success") {
+    throw new OAuthFlowError("provider");
+  }
+
+  return createSessionFromUrl(result.url);
+}
+
+export async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    throw error;
+  }
+}
+
 export function getAuthErrorMessage(error: unknown): string {
+  if (error instanceof OAuthFlowError) {
+    return error.code === "configuration" ?
+      "No pudimos iniciar Google. Revisa la configuración de autenticación." :
+      "Google no pudo completar la autenticación. Inténtalo de nuevo.";
+  }
+
   if (error instanceof AuthApiError && error.code) {
     return authErrorMessages[error.code] ?? "No pudimos completar la autenticación. Inténtalo de nuevo.";
   }
