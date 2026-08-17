@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { AuthContextValue, AuthStatus } from "@/features/auth/context/AuthContext";
 import { AuthContext } from "@/features/auth/context/AuthContext";
+import { signInWithPassword, signUpWithPassword } from "@/features/auth/services/auth.service";
 import { supabase } from "@/lib/supabase";
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -41,6 +42,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AuthContextValue>(() => ({
     session,
+    signInWithPassword,
+    signUpWithPassword,
     status,
     user: session?.user ?? null,
   }), [session, status]);
