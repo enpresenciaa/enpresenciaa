@@ -4,6 +4,9 @@ import { Alice_400Regular } from "@expo-google-fonts/alice";
 import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from "@expo-google-fonts/poppins";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
+
+import { registerSupabaseAutoRefresh } from "@/lib/supabase";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -12,6 +15,8 @@ export default function RootLayout() {
     PoppinsMedium: Poppins_500Medium,
     PoppinsSemiBold: Poppins_600SemiBold,
   });
+
+  useEffect(() => registerSupabaseAutoRefresh(), []);
 
   if (!fontsLoaded) {
     return null;
