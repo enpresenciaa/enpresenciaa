@@ -1,39 +1,41 @@
 /**
- * Environment configuration for Subscribed.
+ * Environment configuration for En Presenciaa.
  * Supports: local | preview | production
  *
  * @type {'local' | 'preview' | 'production'}
  */
+const process = require("node:process");
+
 const APP_ENV = process.env.EXPO_PUBLIC_APP_ENV ?? "local";
 
 const { version } = require("./package.json");
 
 // Bundle IDs per environment
 const BUNDLE_IDS = {
-  local: "com.subscribed.app.local",
-  preview: "com.subscribed.app.preview",
-  production: "com.subscribed.app",
+  local: "com.enpresenciaa.app",
+  preview: "com.enpresenciaa.app",
+  production: "com.enpresenciaa.app",
 };
 
 // Android package names per environment
 const PACKAGES = {
-  local: "com.subscribed.app.local",
-  preview: "com.subscribed.app.preview",
-  production: "com.subscribed.app",
+  local: "com.enpresenciaa.app",
+  preview: "com.enpresenciaa.app",
+  production: "com.enpresenciaa.app",
 };
 
 // URL schemes per environment
 const SCHEMES = {
-  local: "subscribed.local",
-  preview: "subscribed.preview",
-  production: "subscribed",
+  local: "enpresenciaa",
+  preview: "enpresenciaa",
+  production: "enpresenciaa",
 };
 
 // App names per environment
 const NAMES = {
-  local: "Subscribed (Local)",
-  preview: "Subscribed (Preview)",
-  production: "Subscribed",
+  local: "En Presenciaa (Local)",
+  preview: "En Presenciaa (Preview)",
+  production: "En Presenciaa",
 };
 
 // API URL per environment
