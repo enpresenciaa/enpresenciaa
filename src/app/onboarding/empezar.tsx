@@ -51,7 +51,6 @@ export default function StartJourneyRoute() {
     router.replace("/(tabs)");
   }
 
-  // TODO(auth): validar sesión real antes de entrar al Main App.
   // TODO(onboarding): persistir finalización del onboarding cuando exista backend.
   return (
     <OnboardingBackground source={background}>
@@ -96,7 +95,5 @@ const styles = StyleSheet.create({
   physical: { bottom: "25%", left: "7%" },
   pulse: { alignSelf: "center", position: "absolute", top: "40%" },
   safeArea: { flex: 1 },
-  
   spiritual: { bottom: "19%", right: "7%", textAlign: "right" },
 });
-       
