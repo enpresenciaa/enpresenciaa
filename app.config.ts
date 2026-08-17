@@ -5,7 +5,7 @@ const Env = require("./app-env.js");
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: Env.NAME,
-  slug: "subscribed",
+  slug: "enpresenciaa",
   version: Env.VERSION,
   orientation: "portrait",
   icon: "./assets/icon.png",

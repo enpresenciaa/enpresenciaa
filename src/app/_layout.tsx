@@ -26,6 +26,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="auth/callback" />
       <Stack.Screen name="(tabs)" />
     </Stack>
   );
