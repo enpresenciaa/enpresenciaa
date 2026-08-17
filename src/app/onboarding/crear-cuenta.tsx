@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
+import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/onboarding/AppButton";
 import { AppCheckbox } from "@/components/onboarding/AppCheckbox";
@@ -9,6 +10,8 @@ import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OAuthOptions } from "@/components/onboarding/OAuthOptions";
 import { PhoneNumberInput } from "@/components/onboarding/PhoneNumberInput";
 import { colors, fonts } from "@/config/onboarding-theme";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
 
 type FormValues = { confirmPassword: string; countryCode: string; email: string; fullName: string; password: string; phoneNumber: string; privacy: boolean; terms: boolean };
 
@@ -19,14 +22,37 @@ function isValidEmail(value: string): boolean {
 
 export default function CreateAccountRoute() {
   const router = useRouter();
+  const { signUpWithPassword } = useAuth();
+  const submitLockRef = useRef(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { control, formState: { errors, isSubmitting, isValid }, getValues, handleSubmit, trigger } = useForm<FormValues>({
     defaultValues: { confirmPassword: "", countryCode: "+52", email: "", fullName: "", password: "", phoneNumber: "", privacy: false, terms: false },
     mode: "onChange",
   });
 
-  const onSubmit = handleSubmit(async () => {
-    await Promise.resolve();
-    router.replace("/onboarding/login");
+  const onSubmit = handleSubmit(async values => {
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setAuthError(null);
+
+    try {
+      const result = await signUpWithPassword({ email: values.email, password: values.password });
+
+      if (result.requiresEmailConfirmation) {
+        Alert.alert(
+          "Revisa tu correo",
+          "Te enviamos un enlace para confirmar tu cuenta antes de iniciar sesión.",
+          [{ text: "Entendido", onPress: () => router.replace("/onboarding/login") }],
+        );
+      }
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error));
+    } finally {
+      submitLockRef.current = false;
+    }
   });
 
   return (
@@ -67,6 +93,7 @@ export default function CreateAccountRoute() {
         <Controller control={control} name="terms" rules={{ validate: value => value || "Debes aceptar los términos y la privacidad" }} render={({ field: { onChange, value } }) => <AppCheckbox accessibilityLabel="Acepto los Términos y Privacidad" checked={value} error={errors.terms?.message} label={<Text style={styles.checkText}>Acepto los <Text style={styles.highlight}>Términos y Privacidad</Text></Text>} onChange={onChange} />} />
         <Controller control={control} name="privacy" rules={{ validate: value => value || "Debes aceptar el aviso de privacidad" }} render={({ field: { onChange, value } }) => <AppCheckbox accessibilityLabel="Aviso de privacidad" checked={value} error={errors.privacy?.message} label={<Text style={styles.checkText}>Aviso de privacidad</Text>} onChange={onChange} />} />
       </View>
+      {authError ? <Text accessibilityRole="alert" style={styles.authError}>{authError}</Text> : null}
       <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>Registrarme</AppButton>
       <OAuthOptions separatorText="o" title="Regístrate con" />
       <View style={styles.footer}>
@@ -79,6 +106,7 @@ export default function CreateAccountRoute() {
 }
 
 const styles = StyleSheet.create({
+  authError: { color: colors.error, fontFamily: fonts.body, fontSize: 13, marginBottom: 10, textAlign: "center" },
   checkText: { color: colors.text, fontFamily: fonts.body, fontSize: 12, lineHeight: 17 },
   checks: { marginBottom: 10, marginTop: 1 },
   footer: { marginTop: 25, paddingBottom: 4 },

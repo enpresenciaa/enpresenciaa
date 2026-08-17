@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { TextInput } from "react-native";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -12,6 +12,8 @@ import { OnboardingBackground } from "@/components/onboarding/OnboardingBackgrou
 import { OAuthOptions } from "@/components/onboarding/OAuthOptions";
 import type { OAuthProvider } from "@/components/onboarding/OAuthOptions";
 import { colors, fonts } from "@/config/onboarding-theme";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
 
 type FormValues = { email: string; password: string };
 const background = require("../../../assets/images/Imág. INICIAR SESIÓN.jpg");
@@ -23,13 +25,28 @@ function isValidEmail(value: string): boolean {
 
 export default function LoginRoute() {
   const router = useRouter();
+  const { signInWithPassword } = useAuth();
   const passwordRef = useRef<TextInput>(null);
+  const submitLockRef = useRef(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { height } = useWindowDimensions();
   const { control, formState: { errors, isSubmitting, isValid }, handleSubmit } = useForm<FormValues>({ defaultValues: { email: "", password: "" }, mode: "onChange" });
 
-  const onSubmit = handleSubmit(async () => {
-    await Promise.resolve();
-    router.replace("/onboarding/empezar");
+  const onSubmit = handleSubmit(async values => {
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setAuthError(null);
+
+    try {
+      await signInWithPassword(values);
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error));
+    } finally {
+      submitLockRef.current = false;
+    }
   });
 
   function handleForgotPassword() {
@@ -41,7 +58,6 @@ export default function LoginRoute() {
     void provider;
   }
 
-  // TODO(auth): sustituir navegación provisional por autenticación real.
   return (
     <OnboardingBackground source={background}>
       <SafeAreaView style={styles.safeArea}>
@@ -102,6 +118,7 @@ export default function LoginRoute() {
               <Pressable accessibilityLabel="Recuperar contraseña" accessibilityRole="link" hitSlop={8} onPress={handleForgotPassword} style={styles.forgotButton}>
                 <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
               </Pressable>
+              {authError ? <Text accessibilityRole="alert" style={styles.authError}>{authError}</Text> : null}
               <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>Iniciar sesión</AppButton>
               <OAuthOptions disabled={isSubmitting} onProviderPress={handleOAuthPress} separatorText="o continúa con" />
               <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push("/onboarding/crear-cuenta")} style={styles.createButton}>
@@ -116,6 +133,7 @@ export default function LoginRoute() {
 }
 
 const styles = StyleSheet.create({
+  authError: { color: colors.error, fontFamily: fonts.body, fontSize: 13, marginBottom: 9, textAlign: "center" },
   card: { alignSelf: "center", backgroundColor: "rgba(253,248,236,0.95)", borderRadius: 22, maxWidth: 520, paddingHorizontal: 20, paddingVertical: 17, width: "100%" },
   content: { flexGrow: 1, justifyContent: "flex-start", paddingBottom: 24, paddingHorizontal: 24 },
   createButton: { alignItems: "center", justifyContent: "center", marginTop: 10, minHeight: 32 },
