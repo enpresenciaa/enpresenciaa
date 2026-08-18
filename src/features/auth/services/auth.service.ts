@@ -131,6 +131,16 @@ export async function signOut(): Promise<void> {
   }
 }
 
+export async function completeOnboarding(): Promise<void> {
+  const { error } = await supabase.auth.updateUser({
+    data: { onboarding_completed: true },
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 export function getAuthErrorMessage(error: unknown): string {
   if (error instanceof OAuthFlowError) {
     return error.code === "configuration" ?

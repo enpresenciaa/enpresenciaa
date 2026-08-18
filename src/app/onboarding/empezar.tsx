@@ -1,16 +1,18 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { OnboardingBackground } from "@/components/onboarding/OnboardingBackground";
 import { colors, fonts } from "@/config/onboarding-theme";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const background = require("../../../assets/images/Imág. EMPEZAR.jpg");
 
 export default function StartJourneyRoute() {
   const router = useRouter();
+  const { completeOnboarding } = useAuth();
   const scale = useSharedValue(1);
   const [isNavigating, setIsNavigating] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -42,16 +44,22 @@ export default function StartJourneyRoute() {
 
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  function handleStart() {
+  async function handleStart() {
     if (isNavigating) {
       return;
     }
 
     setIsNavigating(true);
-    router.replace("/(tabs)");
+
+    try {
+      await completeOnboarding();
+      router.replace("/(tabs)");
+    } catch {
+      setIsNavigating(false);
+      Alert.alert("No pudimos continuar", "Revisa tu conexión e inténtalo nuevamente.");
+    }
   }
 
-  // TODO(onboarding): persistir finalización del onboarding cuando exista backend.
   return (
     <OnboardingBackground source={background}>
       <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
@@ -66,7 +74,7 @@ export default function StartJourneyRoute() {
               accessibilityRole="button"
               accessibilityState={{ disabled: isNavigating }}
               disabled={isNavigating}
-              onPress={handleStart}
+              onPress={() => void handleStart()}
               style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, isNavigating && styles.buttonDisabled]}
             >
               <Text style={styles.buttonText}>Empezar</Text>
