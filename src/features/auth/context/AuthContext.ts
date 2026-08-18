@@ -6,6 +6,8 @@ import type { EmailPasswordCredentials, OAuthResult, SignUpResult } from "@/feat
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 export interface AuthContextValue {
+  completeOnboarding: () => Promise<void>;
+  hasCompletedOnboarding: boolean;
   session: Session | null;
   signInWithGoogle: () => Promise<OAuthResult>;
   signOut: () => Promise<void>;

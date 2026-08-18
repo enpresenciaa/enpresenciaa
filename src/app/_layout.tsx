@@ -13,7 +13,7 @@ import { AuthProvider } from "@/features/auth/providers/AuthProvider";
 import { registerSupabaseAutoRefresh } from "@/lib/supabase";
 
 function AuthNavigator() {
-  const { status } = useAuth();
+  const { hasCompletedOnboarding, status } = useAuth();
 
   if (status === "loading") {
     return (
@@ -27,12 +27,12 @@ function AuthNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="onboarding" />
       <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
         <Stack.Screen name="auth/callback" />
       </Stack.Protected>
-      <Stack.Protected guard={isAuthenticated}>
+      <Stack.Protected guard={isAuthenticated && hasCompletedOnboarding}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="exercise/[exerciseId]" />
       </Stack.Protected>
