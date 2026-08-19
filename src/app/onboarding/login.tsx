@@ -25,7 +25,7 @@ function isValidEmail(value: string): boolean {
 
 export default function LoginRoute() {
   const router = useRouter();
-  const { signInWithGoogle, signInWithPassword } = useAuth();
+  const { signInWithOAuth, signInWithPassword } = useAuth();
   const passwordRef = useRef<TextInput>(null);
   const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
@@ -65,7 +65,7 @@ export default function LoginRoute() {
     setIsOAuthLoading(true);
 
     try {
-      await signInWithGoogle();
+      await signInWithOAuth("google");
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));
     } finally {

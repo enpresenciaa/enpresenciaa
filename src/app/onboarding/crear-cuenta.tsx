@@ -23,7 +23,7 @@ function isValidEmail(value: string): boolean {
 
 export default function CreateAccountRoute() {
   const router = useRouter();
-  const { signInWithGoogle, signUpWithPassword } = useAuth();
+  const { signInWithOAuth, signUpWithPassword } = useAuth();
   const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -68,7 +68,7 @@ export default function CreateAccountRoute() {
     setIsOAuthLoading(true);
 
     try {
-      await signInWithGoogle();
+      await signInWithOAuth("google");
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));
     } finally {
