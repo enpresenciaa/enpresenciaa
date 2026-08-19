@@ -72,6 +72,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="auth-inspector"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
         name="notificaciones"
         options={{ href: null }}
       />
