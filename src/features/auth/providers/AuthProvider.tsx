@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { AuthContextValue, AuthStatus } from "@/features/auth/context/AuthContext";
 import { AuthContext } from "@/features/auth/context/AuthContext";
-import { completeOnboarding, createSessionFromUrl, signInWithOAuth, signInWithPassword, signOut, signUpWithPassword } from "@/features/auth/services/auth.service";
+import { completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, signInWithOAuth, signInWithPassword, signOut, signUpWithPassword, updateProfile } from "@/features/auth/services/auth.service";
 import { supabase } from "@/lib/supabase";
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -14,7 +14,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>("loading");
 
   useEffect(() => {
-    if (!linkingUrl?.includes("auth/callback")) {
+    if (!linkingUrl?.includes("auth/callback") || !hasOAuthCallbackParams(linkingUrl)) {
       return;
     }
 
@@ -70,6 +70,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     signOut,
     signUpWithPassword,
     status,
+    updateProfile,
     user: session?.user ?? null,
   }), [session, status]);
 

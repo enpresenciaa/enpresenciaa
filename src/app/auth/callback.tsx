@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts } from "@/config/onboarding-theme";
-import { createSessionFromUrl, getAuthErrorMessage } from "@/features/auth/services/auth.service";
+import { createSessionFromUrl, getAuthErrorMessage, hasOAuthCallbackParams } from "@/features/auth/services/auth.service";
 
 type CallbackStatus = "loading" | "success" | "cancelled" | "error";
 
@@ -13,7 +13,7 @@ export default function AuthCallbackRoute() {
   const [status, setStatus] = useState<CallbackStatus>("loading");
 
   useEffect(() => {
-    if (!url) {
+    if (!url || !hasOAuthCallbackParams(url)) {
       return;
     }
 

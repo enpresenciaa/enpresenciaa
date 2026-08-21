@@ -27,7 +27,7 @@ export default function CreateAccountRoute() {
   const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
   const { control, formState: { errors, isSubmitting, isValid }, getValues, handleSubmit, trigger } = useForm<FormValues>({
     defaultValues: { confirmPassword: "", countryCode: "+52", email: "", fullName: "", password: "", phoneNumber: "", privacy: false, terms: false },
     mode: "onChange",
@@ -59,21 +59,23 @@ export default function CreateAccountRoute() {
   });
 
   async function handleOAuthPress(provider: OAuthProvider) {
-    if (provider !== "Google" || oauthLockRef.current) {
+    const authProvider = provider === "Google" ? "google" : provider === "Facebook" ? "facebook" : null;
+
+    if (!authProvider || oauthLockRef.current) {
       return;
     }
 
     oauthLockRef.current = true;
     setAuthError(null);
-    setIsOAuthLoading(true);
+    setLoadingProvider(provider);
 
     try {
-      await signInWithOAuth("google");
+      await signInWithOAuth(authProvider);
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));
     } finally {
       oauthLockRef.current = false;
-      setIsOAuthLoading(false);
+      setLoadingProvider(null);
     }
   }
 
@@ -118,9 +120,9 @@ export default function CreateAccountRoute() {
       {authError ? <Text accessibilityRole="alert" style={styles.authError}>{authError}</Text> : null}
       <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>Registrarme</AppButton>
       <OAuthOptions
-        disabled={isSubmitting || isOAuthLoading}
-        enabledProviders={["Google"]}
-        loadingProvider={isOAuthLoading ? "Google" : null}
+        disabled={isSubmitting || loadingProvider !== null}
+        enabledProviders={["Google", "Facebook"]}
+        loadingProvider={loadingProvider}
         onProviderPress={provider => void handleOAuthPress(provider)}
         separatorText="o"
         title="Regístrate con"
