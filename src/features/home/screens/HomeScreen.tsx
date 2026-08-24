@@ -29,7 +29,8 @@ import {
 } from "@/config/onboarding-theme";
 
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { sanitizeAuthUser } from "@/features/auth/utils/sanitize-auth-user";
+import { useProfile } from "@/features/profile/hooks/useProfile";
+import { getProfileDisplayData } from "@/features/profile/utils/profile-display";
 
 import { homeMock } from "@/mocks/home";
 import { getUnreadNotificationsCount } from "@/mocks/notifications";
@@ -37,9 +38,9 @@ import { getUnreadNotificationsCount } from "@/mocks/notifications";
 export function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { height } = useWindowDimensions();
-  const authUser = user ? sanitizeAuthUser(user) : null;
-  const displayName = authUser?.normalized.displayName ?? authUser?.email?.split("@")[0] ?? "Usuario";
+  const { displayName } = getProfileDisplayData(user, profile);
 
   /**
    * Controla dónde comienza visualmente

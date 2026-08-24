@@ -6,7 +6,8 @@ import { BackButton } from "@/components/onboarding/BackButton";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { colors, fonts } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { sanitizeAuthUser } from "@/features/auth/utils/sanitize-auth-user";
+import { useProfile } from "@/features/profile/hooks/useProfile";
+import { getProfileDisplayData } from "@/features/profile/utils/profile-display";
 
 type SubscriptionRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,8 +25,8 @@ function SubscriptionRow({ icon, label }: SubscriptionRowProps) {
 
 export function SubscriptionScreen() {
   const { user } = useAuth();
-  const profile = user ? sanitizeAuthUser(user) : null;
-  const displayName = profile?.normalized.displayName ?? profile?.email?.split("@")[0] ?? "Mi perfil";
+  const { data: profile } = useProfile();
+  const profileDisplay = getProfileDisplayData(user, profile);
   const metadata = user?.user_metadata ?? {};
   const plan = typeof metadata.subscription_type === "string" ? metadata.subscription_type : "Plan sin configurar";
   const card = typeof metadata.card_last4 === "string" ? `Tarjeta terminada en ${metadata.card_last4}` : "No hay tarjeta registrada";
@@ -36,7 +37,7 @@ export function SubscriptionScreen() {
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <BackButton fallbackHref="/(tabs)/yo" />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <ProfileHeader avatarUrl={profile?.normalized.avatarUrl ?? null} createdAt={profile?.createdAt ?? null} displayName={displayName} />
+          <ProfileHeader avatarUrl={profileDisplay.avatarUrl} createdAt={profileDisplay.createdAt} displayName={profileDisplay.displayName} />
 
           <View style={styles.planTitle}>
             <Ionicons color={colors.text} name="diamond-outline" size={29} />

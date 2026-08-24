@@ -12,17 +12,16 @@ export interface EmailPasswordCredentials {
   password: string;
 }
 
+export interface SignUpCredentials extends EmailPasswordCredentials {
+  fullName?: string;
+  phone?: string;
+}
+
 export interface SignUpResult {
   requiresEmailConfirmation: boolean;
 }
 
-export interface ProfileUpdate {
-  dateOfBirth: string;
-  email: string;
-  fullName: string;
-}
-
-export interface ProfileUpdateResult {
+export interface EmailUpdateResult {
   requiresEmailConfirmation: boolean;
 }
 
@@ -42,12 +41,19 @@ class OAuthFlowError extends Error {
   }
 }
 
+class EmailAlreadyRegisteredError extends Error {
+  constructor() {
+    super("email_already_registered");
+    this.name = "EmailAlreadyRegisteredError";
+  }
+}
+
 const socialProviderLabels: Record<SocialOAuthProvider, string> = {
   facebook: "Facebook",
   google: "Google",
 };
 
-let pendingCallback: { promise: Promise<OAuthResult>; url: string } | null = null;
+let callbackAttempt: { promise: Promise<OAuthResult>; url: string } | null = null;
 
 export function hasOAuthCallbackParams(url: string): boolean {
   const { errorCode, params } = QueryParams.getQueryParams(url);
@@ -83,9 +89,15 @@ export async function signInWithPassword({ email, password }: EmailPasswordCrede
   }
 }
 
-export async function signUpWithPassword({ email, password }: EmailPasswordCredentials): Promise<SignUpResult> {
+export async function signUpWithPassword({ email, fullName, password, phone }: SignUpCredentials): Promise<SignUpResult> {
   const { data, error } = await supabase.auth.signUp({
     email: email.trim().toLowerCase(),
+    options: {
+      data: {
+        ...(fullName?.trim() ? { full_name: fullName.trim(), name: fullName.trim() } : {}),
+        ...(phone?.trim() ? { phone: phone.trim() } : {}),
+      },
+    },
     password,
   });
 
@@ -93,18 +105,29 @@ export async function signUpWithPassword({ email, password }: EmailPasswordCrede
     throw error;
   }
 
+  if (!data.user) {
+    throw new Error("Supabase did not return a user after sign up.");
+  }
+
+  // Supabase can obscure an existing confirmed account by returning a user
+  // without identities. Do not report that response as a new registration.
+  if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new EmailAlreadyRegisteredError();
+  }
+
   return { requiresEmailConfirmation: data.session === null };
 }
 
 async function exchangeCallbackForSession(url: string, provider?: SocialOAuthProvider): Promise<OAuthResult> {
   const { errorCode, params } = QueryParams.getQueryParams(url);
+  const providerError = errorCode ?? params.error;
   const errorDescription = params.error_description ?? params.error;
 
-  if (errorCode === "access_denied") {
+  if (providerError === "access_denied") {
     return "cancelled";
   }
 
-  if (errorCode) {
+  if (providerError) {
     throw new OAuthFlowError("provider", provider, errorDescription);
   }
 
@@ -147,17 +170,15 @@ async function exchangeCallbackForSession(url: string, provider?: SocialOAuthPro
 }
 
 export function createSessionFromUrl(url: string, provider?: SocialOAuthProvider): Promise<OAuthResult> {
-  if (pendingCallback?.url === url) {
-    return pendingCallback.promise;
+  if (callbackAttempt?.url === url) {
+    return callbackAttempt.promise;
   }
 
-  const promise = exchangeCallbackForSession(url, provider).finally(() => {
-    if (pendingCallback?.promise === promise) {
-      pendingCallback = null;
-    }
-  });
+  // OAuth authorization codes are single-use. Expo Linking and
+  // openAuthSessionAsync can expose the same callback to multiple listeners.
+  const promise = exchangeCallbackForSession(url, provider);
 
-  pendingCallback = { promise, url };
+  callbackAttempt = { promise, url };
   return promise;
 }
 
@@ -210,16 +231,16 @@ export async function completeOnboarding(): Promise<void> {
   }
 }
 
-export async function updateProfile({ dateOfBirth, email, fullName }: ProfileUpdate): Promise<ProfileUpdateResult> {
+export async function updateEmail(email: string): Promise<EmailUpdateResult> {
   const normalizedEmail = email.trim().toLowerCase();
   const currentEmail = (await supabase.auth.getUser()).data.user?.email?.toLowerCase();
+
+  if (normalizedEmail === currentEmail) {
+    return { requiresEmailConfirmation: false };
+  }
+
   const { data, error } = await supabase.auth.updateUser({
-    ...(normalizedEmail !== currentEmail ? { email: normalizedEmail } : {}),
-    data: {
-      date_of_birth: dateOfBirth,
-      full_name: fullName.trim(),
-      name: fullName.trim(),
-    },
+    email: normalizedEmail,
   });
 
   if (error) {
@@ -230,6 +251,10 @@ export async function updateProfile({ dateOfBirth, email, fullName }: ProfileUpd
 }
 
 export function getAuthErrorMessage(error: unknown): string {
+  if (error instanceof EmailAlreadyRegisteredError) {
+    return "Ya existe una cuenta asociada a este correo. Inicia sesión o recupera tu contraseña.";
+  }
+
   if (error instanceof OAuthFlowError) {
     const provider = error.provider ? socialProviderLabels[error.provider] : "el proveedor";
 

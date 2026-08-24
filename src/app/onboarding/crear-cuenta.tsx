@@ -42,7 +42,12 @@ export default function CreateAccountRoute() {
     setAuthError(null);
 
     try {
-      const result = await signUpWithPassword({ email: values.email, password: values.password });
+      const result = await signUpWithPassword({
+        email: values.email,
+        fullName: values.fullName,
+        password: values.password,
+        phone: `${values.countryCode}${values.phoneNumber}`,
+      });
 
       if (result.requiresEmailConfirmation) {
         Alert.alert(
@@ -50,6 +55,8 @@ export default function CreateAccountRoute() {
           "Te enviamos un enlace para confirmar tu cuenta antes de iniciar sesión.",
           [{ text: "Entendido", onPress: () => router.replace("/onboarding/login") }],
         );
+      } else {
+        router.replace("/onboarding/empezar");
       }
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));

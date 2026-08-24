@@ -14,13 +14,13 @@ export function BackButton({ fallbackHref, inline = false }: BackButtonProps) {
   const router = useRouter();
 
   function handleBack() {
-    if (fallbackHref) {
-      router.replace(fallbackHref);
+    if (router.canGoBack()) {
+      router.back();
       return;
     }
 
-    if (router.canGoBack()) {
-      router.back();
+    if (fallbackHref) {
+      router.replace(fallbackHref);
     }
   }
 

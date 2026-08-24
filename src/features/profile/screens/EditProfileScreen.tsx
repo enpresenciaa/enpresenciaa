@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,7 +11,9 @@ import { DateOfBirthPicker } from "@/components/onboarding/DateOfBirthPicker";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
-import { sanitizeAuthUser } from "@/features/auth/utils/sanitize-auth-user";
+import { useProfile, useUpdateProfile } from "@/features/profile/hooks/useProfile";
+import { toDisplayDate, toIsoDate } from "@/features/profile/services/profile.service";
+import { getProfileDisplayData } from "@/features/profile/utils/profile-display";
 
 type ProfileForm = { dateOfBirth: string; email: string; fullName: string };
 
@@ -21,31 +24,55 @@ function isValidEmail(value: string): boolean {
 
 export function EditProfileScreen() {
   const router = useRouter();
-  const { updateProfile, user } = useAuth();
-  const profile = user ? sanitizeAuthUser(user) : null;
-  const displayName = profile?.normalized.displayName ?? profile?.email?.split("@")[0] ?? "Mi perfil";
-  const dateOfBirth = typeof user?.user_metadata.date_of_birth === "string" ? user.user_metadata.date_of_birth : "";
-  const { control, formState: { errors, isSubmitting, isValid }, handleSubmit } = useForm<ProfileForm>({
+  const { updateEmail, user } = useAuth();
+  const { data: profile } = useProfile();
+  const profileMutation = useUpdateProfile();
+  const profileDisplay = getProfileDisplayData(user, profile);
+  const { control, formState: { errors, isDirty, isSubmitting, isValid }, handleSubmit, reset } = useForm<ProfileForm>({
     defaultValues: {
-      dateOfBirth,
-      email: profile?.email ?? "",
-      fullName: profile?.normalized.displayName ?? "",
+      dateOfBirth: "",
+      email: profileDisplay.email,
+      fullName: "",
     },
     mode: "onChange",
   });
 
+  useEffect(() => {
+    if (!profile || isDirty) {
+      return;
+    }
+
+    reset({
+      dateOfBirth: toDisplayDate(profile.date_of_birth),
+      email: profileDisplay.email,
+      fullName: profile.full_name ?? profileDisplay.displayName,
+    });
+  }, [isDirty, profile, profileDisplay.displayName, profileDisplay.email, reset]);
+
   const onSubmit = handleSubmit(async values => {
+    let profileSaved = false;
+
     try {
-      const result = await updateProfile(values);
+      await profileMutation.mutateAsync({
+        date_of_birth: toIsoDate(values.dateOfBirth),
+        full_name: values.fullName.trim(),
+      });
+      profileSaved = true;
+      const result = await updateEmail(values.email);
       Alert.alert(
         "Perfil actualizado",
         result.requiresEmailConfirmation ?
           "Guardamos tus datos. Confirma el nuevo correo desde el mensaje que te enviamos." :
           "Tus datos se guardaron correctamente.",
-        [{ text: "Entendido", onPress: () => router.back() }],
+        [{ text: "Entendido", onPress: () => router.replace("/(tabs)/yo") }],
       );
     } catch (error) {
-      Alert.alert("No pudimos guardar", getAuthErrorMessage(error));
+      Alert.alert(
+        profileSaved ? "Perfil guardado parcialmente" : "No pudimos guardar",
+        profileSaved ?
+          `El nombre y la fecha se guardaron, pero no pudimos actualizar el correo. ${getAuthErrorMessage(error)}` :
+            getAuthErrorMessage(error),
+      );
     }
   });
 
@@ -55,7 +82,7 @@ export function EditProfileScreen() {
         <BackButton fallbackHref="/(tabs)/yo" />
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.safeArea}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <ProfileHeader avatarUrl={profile?.normalized.avatarUrl ?? null} createdAt={profile?.createdAt ?? null} displayName={displayName} />
+            <ProfileHeader avatarUrl={profileDisplay.avatarUrl} createdAt={profileDisplay.createdAt} displayName={profileDisplay.displayName} />
 
             <Controller
               control={control}

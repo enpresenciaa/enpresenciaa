@@ -8,7 +8,8 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { colors, fonts } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
-import { sanitizeAuthUser } from "@/features/auth/utils/sanitize-auth-user";
+import { useProfile } from "@/features/profile/hooks/useProfile";
+import { getProfileDisplayData } from "@/features/profile/utils/profile-display";
 
 type ProfileMenuItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -37,8 +38,8 @@ export function ProfileScreen() {
   const signOutLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const profile = user ? sanitizeAuthUser(user) : null;
-  const displayName = profile?.normalized.displayName ?? profile?.email?.split("@")[0] ?? "Mi perfil";
+  const { data: profile, error: profileError, isFetching, refetch } = useProfile();
+  const profileDisplay = getProfileDisplayData(user, profile);
 
   function showComingSoon(section: string) {
     Alert.alert(section, "Esta sección estará disponible próximamente.");
@@ -67,7 +68,14 @@ export function ProfileScreen() {
     <View style={styles.screen}>
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <ProfileHeader avatarUrl={profile?.normalized.avatarUrl ?? null} createdAt={profile?.createdAt ?? null} displayName={displayName} />
+          <ProfileHeader avatarUrl={profileDisplay.avatarUrl} createdAt={profileDisplay.createdAt} displayName={profileDisplay.displayName} />
+
+          {isFetching && !profile ? <ActivityIndicator color={colors.primary} style={styles.profileStatus} /> : null}
+          {profileError ? (
+            <Pressable accessibilityRole="button" onPress={() => void refetch()}>
+              <Text accessibilityRole="alert" style={styles.error}>No pudimos cargar tu perfil. Toca para reintentar.</Text>
+            </Pressable>
+          ) : null}
 
           <View style={styles.menu}>
             <ProfileMenuItem icon="create-outline" label="Editar perfil" onPress={() => router.push("/(tabs)/yo/editar-perfil")} />
@@ -101,6 +109,7 @@ const styles = StyleSheet.create({
   menuItem: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E6E8E3", borderRadius: 6, borderWidth: 1, flexDirection: "row", minHeight: 54, paddingHorizontal: 14 },
   menuLabel: { color: colors.text, flex: 1, fontFamily: fonts.body, fontSize: 18, marginLeft: 13 },
   pressed: { opacity: 0.65 },
+  profileStatus: { marginBottom: 12 },
   resourceCard: { backgroundColor: "#FFFFFF", borderColor: "#E6E8E3", borderRadius: 6, borderWidth: 1, justifyContent: "center", marginHorizontal: 5, marginTop: 8, minHeight: 54, paddingHorizontal: 14 },
   resourceText: { color: colors.text, fontFamily: fonts.body, fontSize: 17 },
   safeArea: { flex: 1 },

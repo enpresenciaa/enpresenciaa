@@ -4,7 +4,6 @@ import { StyleSheet, Text, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 
 import { AppButton } from "@/components/onboarding/AppButton";
-import { BackButton } from "@/components/onboarding/BackButton";
 import { OnboardingBackground } from "@/components/onboarding/OnboardingBackground";
 import { colors, fonts } from "@/config/onboarding-theme";
 
@@ -20,7 +19,6 @@ export default function VideoRoute() {
   return (
     <OnboardingBackground source={background}>
       <SafeAreaView style={styles.safeArea}>
-        <BackButton />
         <View style={styles.content}>
           <View style={styles.centerGroup}>
             <Text accessibilityRole="header" style={styles.title}>Video de{"\n"}introducción</Text>
