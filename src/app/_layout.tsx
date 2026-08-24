@@ -2,6 +2,7 @@ import "../../global.css";
 
 import { Alice_400Regular } from "@expo-google-fonts/alice";
 import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from "@expo-google-fonts/poppins";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
@@ -11,6 +12,7 @@ import { colors } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { AuthProvider } from "@/features/auth/providers/AuthProvider";
 import { registerSupabaseAutoRefresh } from "@/lib/supabase";
+import { queryClient } from "@/lib/query-client";
 
 function AuthNavigator() {
   const { hasCompletedOnboarding, status } = useAuth();
@@ -57,7 +59,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <AuthNavigator />
+      <QueryClientProvider client={queryClient}>
+        <AuthNavigator />
+      </QueryClientProvider>
     </AuthProvider>
   );
 }

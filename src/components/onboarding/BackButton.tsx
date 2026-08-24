@@ -1,11 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet } from "react-native";
 
 import { colors } from "@/config/onboarding-theme";
 
-export function BackButton({ inline = false }: { inline?: boolean }) {
+type BackButtonProps = {
+  fallbackHref?: Href;
+  inline?: boolean;
+};
+
+export function BackButton({ fallbackHref, inline = false }: BackButtonProps) {
   const router = useRouter();
+
+  function handleBack() {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    if (fallbackHref) {
+      router.replace(fallbackHref);
+    }
+  }
 
   return (
     <Pressable
@@ -13,7 +30,7 @@ export function BackButton({ inline = false }: { inline?: boolean }) {
       accessibilityLabel="Regresar"
       accessibilityRole="button"
       hitSlop={10}
-      onPress={() => router.back()}
+      onPress={handleBack}
       style={({ pressed }) => [styles.button, inline && styles.inline, pressed && styles.pressed]}
     >
       <Ionicons color={colors.primary} name="arrow-back" size={28} />

@@ -34,6 +34,7 @@ export interface SanitizedAuthUser {
 const appMetadataKeys = ["provider", "providers"] as const;
 const userMetadataKeys = [
   "avatar_url",
+  "date_of_birth",
   "email",
   "email_verified",
   "family_name",

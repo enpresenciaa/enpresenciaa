@@ -28,12 +28,19 @@ import {
   fonts,
 } from "@/config/onboarding-theme";
 
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useProfile } from "@/features/profile/hooks/useProfile";
+import { getProfileDisplayData } from "@/features/profile/utils/profile-display";
+
 import { homeMock } from "@/mocks/home";
 import { getUnreadNotificationsCount } from "@/mocks/notifications";
 
 export function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { height } = useWindowDimensions();
+  const { displayName } = getProfileDisplayData(user, profile);
 
   /**
    * Controla dónde comienza visualmente
@@ -67,16 +74,16 @@ export function HomeScreen() {
             ]}
           >
             <HomeHeader
-              name={homeMock.user.name}
+              name={displayName}
             />
 
             <MotivationRow
               motivation={homeMock.motivation}
-              onNotificationsPress={() =>
+              onNotificationsPress={() => {
                 router.push(
                   "/(tabs)/notificaciones",
-                )
-              }
+                );
+              }}
               unreadCount={
                 getUnreadNotificationsCount()
               }
@@ -103,14 +110,14 @@ export function HomeScreen() {
 
             <CurrentExerciseCard
               exercise={homeMock.currentExercise}
-              onPress={() =>
+              onPress={() => {
                 router.push(
                   `/exercise/${homeMock.currentExercise.id}` as unknown as Href,
-                )
-              }
+                );
+              }}
             />
 
-            {/* 
+            {/*
               Este contenido queda debajo del primer viewport
               y aparece naturalmente al hacer scroll.
             */}

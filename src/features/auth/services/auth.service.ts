@@ -12,7 +12,16 @@ export interface EmailPasswordCredentials {
   password: string;
 }
 
+export interface SignUpCredentials extends EmailPasswordCredentials {
+  fullName?: string;
+  phone?: string;
+}
+
 export interface SignUpResult {
+  requiresEmailConfirmation: boolean;
+}
+
+export interface EmailUpdateResult {
   requiresEmailConfirmation: boolean;
 }
 
@@ -22,9 +31,20 @@ export type SocialOAuthProvider = "facebook" | "google";
 type OAuthFlowErrorCode = "configuration" | "provider";
 
 class OAuthFlowError extends Error {
-  constructor(readonly code: OAuthFlowErrorCode, readonly provider?: SocialOAuthProvider) {
-    super(code);
+  constructor(
+    readonly code: OAuthFlowErrorCode,
+    readonly provider?: SocialOAuthProvider,
+    readonly detail?: string,
+  ) {
+    super(detail ?? code);
     this.name = "OAuthFlowError";
+  }
+}
+
+class EmailAlreadyRegisteredError extends Error {
+  constructor() {
+    super("email_already_registered");
+    this.name = "EmailAlreadyRegisteredError";
   }
 }
 
@@ -32,6 +52,20 @@ const socialProviderLabels: Record<SocialOAuthProvider, string> = {
   facebook: "Facebook",
   google: "Google",
 };
+
+let callbackAttempt: { promise: Promise<OAuthResult>; url: string } | null = null;
+
+export function hasOAuthCallbackParams(url: string): boolean {
+  const { errorCode, params } = QueryParams.getQueryParams(url);
+
+  return Boolean(
+    errorCode ||
+    params.error ||
+    params.access_token ||
+    params.refresh_token ||
+    params.code,
+  );
+}
 
 const authErrorMessages: Record<string, string> = {
   email_exists: "Ya existe una cuenta asociada a este correo.",
@@ -55,9 +89,15 @@ export async function signInWithPassword({ email, password }: EmailPasswordCrede
   }
 }
 
-export async function signUpWithPassword({ email, password }: EmailPasswordCredentials): Promise<SignUpResult> {
+export async function signUpWithPassword({ email, fullName, password, phone }: SignUpCredentials): Promise<SignUpResult> {
   const { data, error } = await supabase.auth.signUp({
     email: email.trim().toLowerCase(),
+    options: {
+      data: {
+        ...(fullName?.trim() ? { full_name: fullName.trim(), name: fullName.trim() } : {}),
+        ...(phone?.trim() ? { phone: phone.trim() } : {}),
+      },
+    },
     password,
   });
 
@@ -65,28 +105,55 @@ export async function signUpWithPassword({ email, password }: EmailPasswordCrede
     throw error;
   }
 
+  if (!data.user) {
+    throw new Error("Supabase did not return a user after sign up.");
+  }
+
+  // Supabase can obscure an existing confirmed account by returning a user
+  // without identities. Do not report that response as a new registration.
+  if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new EmailAlreadyRegisteredError();
+  }
+
   return { requiresEmailConfirmation: data.session === null };
 }
 
-export async function createSessionFromUrl(url: string, provider?: SocialOAuthProvider): Promise<OAuthResult> {
+async function exchangeCallbackForSession(url: string, provider?: SocialOAuthProvider): Promise<OAuthResult> {
   const { errorCode, params } = QueryParams.getQueryParams(url);
+  const providerError = errorCode ?? params.error;
+  const errorDescription = params.error_description ?? params.error;
 
-  if (errorCode === "access_denied") {
+  if (providerError === "access_denied") {
     return "cancelled";
   }
 
-  if (errorCode) {
-    throw new OAuthFlowError("provider", provider);
+  if (providerError) {
+    throw new OAuthFlowError("provider", provider, errorDescription);
   }
 
   const accessToken = params.access_token;
   const refreshToken = params.refresh_token;
+  const code = params.code;
+
+  if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.session) {
+      throw new OAuthFlowError("configuration", provider);
+    }
+
+    return "success";
+  }
 
   if (!accessToken || !refreshToken) {
     throw new OAuthFlowError("configuration", provider);
   }
 
-  const { error } = await supabase.auth.setSession({
+  const { data, error } = await supabase.auth.setSession({
     access_token: accessToken,
     refresh_token: refreshToken,
   });
@@ -95,7 +162,24 @@ export async function createSessionFromUrl(url: string, provider?: SocialOAuthPr
     throw error;
   }
 
+  if (!data.session) {
+    throw new OAuthFlowError("configuration", provider);
+  }
+
   return "success";
+}
+
+export function createSessionFromUrl(url: string, provider?: SocialOAuthProvider): Promise<OAuthResult> {
+  if (callbackAttempt?.url === url) {
+    return callbackAttempt.promise;
+  }
+
+  // OAuth authorization codes are single-use. Expo Linking and
+  // openAuthSessionAsync can expose the same callback to multiple listeners.
+  const promise = exchangeCallbackForSession(url, provider);
+
+  callbackAttempt = { promise, url };
+  return promise;
 }
 
 export async function signInWithOAuth(provider: SocialOAuthProvider): Promise<OAuthResult> {
@@ -147,9 +231,36 @@ export async function completeOnboarding(): Promise<void> {
   }
 }
 
+export async function updateEmail(email: string): Promise<EmailUpdateResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const currentEmail = (await supabase.auth.getUser()).data.user?.email?.toLowerCase();
+
+  if (normalizedEmail === currentEmail) {
+    return { requiresEmailConfirmation: false };
+  }
+
+  const { data, error } = await supabase.auth.updateUser({
+    email: normalizedEmail,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return { requiresEmailConfirmation: data.user.email?.toLowerCase() !== normalizedEmail };
+}
+
 export function getAuthErrorMessage(error: unknown): string {
+  if (error instanceof EmailAlreadyRegisteredError) {
+    return "Ya existe una cuenta asociada a este correo. Inicia sesión o recupera tu contraseña.";
+  }
+
   if (error instanceof OAuthFlowError) {
     const provider = error.provider ? socialProviderLabels[error.provider] : "el proveedor";
+
+    if (error.detail) {
+      return `${provider} rechazó la autenticación: ${error.detail}`;
+    }
 
     return error.code === "configuration" ?
       `No pudimos iniciar ${provider}. Revisa la configuración de autenticación.` :

@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
 export default function OnboardingLayout() {
-  const { hasCompletedOnboarding, status } = useAuth();
+  const { status } = useAuth();
   const isAuthenticated = status === "authenticated";
 
   return (
@@ -18,7 +18,7 @@ export default function OnboardingLayout() {
         <Stack.Screen name="crear-cuenta" />
         <Stack.Screen name="login" />
       </Stack.Protected>
-      <Stack.Protected guard={isAuthenticated && !hasCompletedOnboarding}>
+      <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="empezar" />
       </Stack.Protected>
     </Stack>

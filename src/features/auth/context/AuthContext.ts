@@ -1,7 +1,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext } from "react";
 
-import type { EmailPasswordCredentials, OAuthResult, SignUpResult, SocialOAuthProvider } from "@/features/auth/services/auth.service";
+import type { EmailPasswordCredentials, EmailUpdateResult, OAuthResult, SignUpCredentials, SignUpResult, SocialOAuthProvider } from "@/features/auth/services/auth.service";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -12,8 +12,9 @@ export interface AuthContextValue {
   signInWithOAuth: (provider: SocialOAuthProvider) => Promise<OAuthResult>;
   signOut: () => Promise<void>;
   signInWithPassword: (credentials: EmailPasswordCredentials) => Promise<void>;
-  signUpWithPassword: (credentials: EmailPasswordCredentials) => Promise<SignUpResult>;
+  signUpWithPassword: (credentials: SignUpCredentials) => Promise<SignUpResult>;
   status: AuthStatus;
+  updateEmail: (email: string) => Promise<EmailUpdateResult>;
   user: User | null;
 }
 
