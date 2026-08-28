@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/onboarding/AppButton";
 import { AppCheckbox } from "@/components/onboarding/AppCheckbox";
+import { EmailConfirmationModal } from "@/components/onboarding/EmailConfirmationModal";
 import { AppInput } from "@/components/onboarding/AppInput";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OAuthOptions } from "@/components/onboarding/OAuthOptions";
@@ -23,10 +24,13 @@ function isValidEmail(value: string): boolean {
 
 export default function CreateAccountRoute() {
   const router = useRouter();
-  const { signInWithOAuth, signUpWithPassword } = useAuth();
+  const { resendConfirmationEmail, signInWithOAuth, signUpWithPassword } = useAuth();
   const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
+  const [confirmationFeedback, setConfirmationFeedback] = useState<string | null>(null);
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null);
   const { control, formState: { errors, isSubmitting, isValid }, getValues, handleSubmit, trigger } = useForm<FormValues>({
     defaultValues: { confirmPassword: "", countryCode: "+52", email: "", fullName: "", password: "", phoneNumber: "", privacy: false, terms: false },
@@ -50,11 +54,9 @@ export default function CreateAccountRoute() {
       });
 
       if (result.requiresEmailConfirmation) {
-        Alert.alert(
-          "Revisa tu correo",
-          "Te enviamos un enlace para confirmar tu cuenta antes de iniciar sesión.",
-          [{ text: "Entendido", onPress: () => router.replace("/onboarding/login") }],
-        );
+        const normalizedEmail = values.email.trim().toLowerCase();
+        setConfirmationFeedback(null);
+        setConfirmationEmail(normalizedEmail);
       } else {
         router.replace("/onboarding/empezar");
       }
@@ -64,6 +66,34 @@ export default function CreateAccountRoute() {
       submitLockRef.current = false;
     }
   });
+
+  async function handleResendConfirmation() {
+    if (!confirmationEmail || isResendingConfirmation) {
+      return;
+    }
+
+    setIsResendingConfirmation(true);
+    setConfirmationFeedback(null);
+
+    try {
+      await resendConfirmationEmail(confirmationEmail);
+      setConfirmationFeedback("Enviamos un nuevo enlace de confirmación.");
+    } catch (error) {
+      setConfirmationFeedback(getAuthErrorMessage(error));
+    } finally {
+      setIsResendingConfirmation(false);
+    }
+  }
+
+  function handleChangeConfirmationEmail() {
+    setConfirmationFeedback(null);
+    setConfirmationEmail(null);
+  }
+
+  function handleCloseConfirmation() {
+    setConfirmationEmail(null);
+    router.replace("/onboarding/login");
+  }
 
   async function handleOAuthPress(provider: OAuthProvider) {
     const authProvider = provider === "Google" ? "google" : provider === "Facebook" ? "facebook" : null;
@@ -139,6 +169,14 @@ export default function CreateAccountRoute() {
           <Text style={styles.link}>¿Ya tienes cuenta? <Text style={styles.linkHighlight}>Inicia sesión</Text></Text>
         </Pressable>
       </View>
+      <EmailConfirmationModal
+        email={confirmationEmail}
+        feedback={confirmationFeedback}
+        isResending={isResendingConfirmation}
+        onChangeEmail={handleChangeConfirmationEmail}
+        onClose={handleCloseConfirmation}
+        onResend={() => void handleResendConfirmation()}
+      />
     </OnboardingScreen>
   );
 }

@@ -97,6 +97,7 @@ export async function signUpWithPassword({ email, fullName, password, phone }: S
         ...(fullName?.trim() ? { full_name: fullName.trim(), name: fullName.trim() } : {}),
         ...(phone?.trim() ? { phone: phone.trim() } : {}),
       },
+      emailRedirectTo: getAuthRedirectUrl(),
     },
     password,
   });
@@ -167,6 +168,18 @@ async function exchangeCallbackForSession(url: string, provider?: SocialOAuthPro
   }
 
   return "success";
+}
+
+export async function resendConfirmationEmail(email: string): Promise<void> {
+  const { error } = await supabase.auth.resend({
+    email: email.trim().toLowerCase(),
+    options: { emailRedirectTo: getAuthRedirectUrl() },
+    type: "signup",
+  });
+
+  if (error) {
+    throw error;
+  }
 }
 
 export function createSessionFromUrl(url: string, provider?: SocialOAuthProvider): Promise<OAuthResult> {
