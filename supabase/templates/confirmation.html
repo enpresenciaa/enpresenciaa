@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirma tu correo | En Presenciaa</title>
+  </head>
+  <body style="background:#f4f0e6;margin:0;padding:0;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+      Confirma tu correo para comenzar tu camino en En Presenciaa.
+    </div>
+    <table role="presentation" style="border-collapse:collapse;width:100%;">
+      <tr>
+        <td style="padding:32px 16px;" align="center">
+          <table role="presentation" style="background:#fffdf7;border-collapse:separate;border-radius:20px;max-width:560px;overflow:hidden;width:100%;">
+            <tr>
+              <td style="background:#063b32;padding:28px 32px;text-align:center;">
+                <p style="color:#f5dfaa;font-family:Georgia,serif;font-size:26px;margin:0;">En Presenciaa</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#24372f;font-family:Arial,sans-serif;padding:38px 32px;">
+                <h1 style="font-family:Georgia,serif;font-size:30px;font-weight:400;line-height:1.2;margin:0 0 22px;text-align:center;">Confirma tu correo</h1>
+                <p style="font-size:16px;line-height:1.6;margin:0 0 16px;">
+                  {{ if .Data.full_name }}Hola, {{ .Data.full_name }}.{{ else }}Hola.{{ end }}
+                </p>
+                <p style="font-size:16px;line-height:1.6;margin:0 0 28px;">
+                  Gracias por crear tu cuenta. Confirma tu correo para activarla y comenzar tu experiencia en En Presenciaa.
+                </p>
+                <p style="margin:0 0 30px;text-align:center;">
+                  <a href="{{ .ConfirmationURL }}" style="background:#b58a43;border-radius:999px;color:#ffffff;display:inline-block;font-size:16px;font-weight:700;padding:14px 28px;text-decoration:none;">Confirmar mi correo</a>
+                </p>
+                <p style="color:#66756f;font-size:13px;line-height:1.5;margin:0;">
+                  Si no solicitaste esta cuenta, puedes ignorar este mensaje.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top:1px solid #e5dfd2;color:#7b857f;font-family:Arial,sans-serif;font-size:12px;padding:20px 32px;text-align:center;">
+                En Presenciaa · Un espacio para volver a ti
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

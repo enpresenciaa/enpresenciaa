@@ -1,5 +1,5 @@
-import { ExercisesScreen } from "@/features/exercises/screens/ExercisesScreen";
+import { JournalScreen } from "@/features/journal/screens/JournalScreen";
 
 export default function ExercisesRoute() {
-  return <ExercisesScreen />;
+  return <JournalScreen />;
 }

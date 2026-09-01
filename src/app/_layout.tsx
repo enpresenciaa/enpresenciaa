@@ -36,6 +36,7 @@ function AuthNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={isAuthenticated && hasCompletedOnboarding}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="camino/nivel/[levelId]" />
         <Stack.Screen name="exercise/[exerciseId]" />
       </Stack.Protected>
       <Stack.Screen name="+not-found" />

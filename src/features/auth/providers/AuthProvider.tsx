@@ -1,11 +1,12 @@
 import type { Session } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import type { PropsWithChildren } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AuthContextValue, AuthStatus } from "@/features/auth/context/AuthContext";
 import { AuthContext } from "@/features/auth/context/AuthContext";
-import { completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, signInWithOAuth, signInWithPassword, signOut, signUpWithPassword, updateEmail } from "@/features/auth/services/auth.service";
+import type { SocialOAuthProvider } from "@/features/auth/services/auth.service";
+import { completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
 import { queryClient } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase";
 
@@ -14,6 +15,44 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const processedCallbackUrlRef = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
+
+  const handleSignInWithOAuth = useCallback(async (provider: SocialOAuthProvider) => {
+    const result = await signInWithOAuthService(provider);
+
+    if (result !== "success") {
+      return result;
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    setSession(data.session);
+    setStatus(data.session ? "authenticated" : "unauthenticated");
+
+    return result;
+  }, []);
+
+  const handleSignUpWithPassword = useCallback<AuthContextValue["signUpWithPassword"]>(async credentials => {
+    const result = await signUpWithPasswordService(credentials);
+
+    if (result.requiresEmailConfirmation) {
+      return result;
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    setSession(data.session);
+    setStatus(data.session ? "authenticated" : "unauthenticated");
+
+    return result;
+  }, []);
 
   useEffect(() => {
     if (!linkingUrl?.includes("auth/callback") || !hasOAuthCallbackParams(linkingUrl)) {
@@ -103,6 +142,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       if (event === "SIGNED_OUT") {
         queryClient.removeQueries({ queryKey: ["profile"] });
+        queryClient.removeQueries({ queryKey: ["journal"] });
       }
 
       updateSession(nextSession);
@@ -125,15 +165,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const value = useMemo<AuthContextValue>(() => ({
     completeOnboarding,
     hasCompletedOnboarding: session?.user.user_metadata.onboarding_completed === true,
+    resendConfirmationEmail,
     session,
-    signInWithOAuth,
+    signInWithOAuth: handleSignInWithOAuth,
     signInWithPassword,
     signOut,
-    signUpWithPassword,
+    signUpWithPassword: handleSignUpWithPassword,
     status,
     updateEmail,
     user: session?.user ?? null,
-  }), [session, status]);
+  }), [handleSignInWithOAuth, handleSignUpWithPassword, session, status]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }

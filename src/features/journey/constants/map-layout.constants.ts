@@ -1,0 +1,18 @@
+export const MAP_ASPECT_RATIO = 1983 / 793;
+export const LEVEL_NODE_SIZE = 48;
+export const CURRENT_LEVEL_VIEWPORT_ANCHOR = 0.57;
+export const JOURNEY_MAP_WIDTH_RATIO = 2.2;
+export const JOURNEY_CAMERA_X_FOLLOW = 0.5;
+export const JOURNEY_TOP_CAMERA_BLEND_DISTANCE = 0.35;
+export const JOURNEY_TOP_LEVEL_VIEWPORT_ANCHOR = 0.22;
+export const LEVEL_FOCUS_DURATION = 420;
+export const CINEMATIC_ENTRY_DURATION = 1150;
+export const CLOUD_REVEAL_DURATION = 560;
+export const LEVEL_FOCUS_SCALE = 1.18;
+export const LEVEL_SNAP_FOCUS_DURATION = 320;
+export const LEVEL_SNAP_FOCUS_SCALE = 1.12;
+
+export const LEFT_CAVE_NODE_OFFSET_X = 0.032;
+export const RIGHT_CAVE_NODE_OFFSET_X = -0.032;
+export const CAVE_NODE_OFFSET_Y = 0.014;
+export const SUMMIT_NODE_OFFSET_Y = 0.016;

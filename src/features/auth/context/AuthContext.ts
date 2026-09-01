@@ -8,6 +8,7 @@ export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 export interface AuthContextValue {
   completeOnboarding: () => Promise<void>;
   hasCompletedOnboarding: boolean;
+  resendConfirmationEmail: (email: string) => Promise<void>;
   session: Session | null;
   signInWithOAuth: (provider: SocialOAuthProvider) => Promise<OAuthResult>;
   signOut: () => Promise<void>;
