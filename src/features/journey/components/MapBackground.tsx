@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { StyleSheet } from "react-native";
 
-const caminoBackground = require("../../../../assets/images/CaminoBG2.png");
+const caminoBackground = require("../../../../assets/images/CaminoBG.png");
 
 interface MapBackgroundProps {
   height: number;

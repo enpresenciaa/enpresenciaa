@@ -9,6 +9,24 @@ type Relationship = {
 export type Database = {
   public: {
     Tables: {
+      billing_checkout_attempts: {
+        Insert: { attempt_id: string; created_at?: string; expires_at?: string | null; status?: string; stripe_checkout_session_id?: string | null; updated_at?: string; user_id: string };
+        Relationships: Relationship[];
+        Row: { attempt_id: string; created_at: string; expires_at: string | null; status: string; stripe_checkout_session_id: string | null; updated_at: string; user_id: string };
+        Update: { expires_at?: string | null; status?: string; stripe_checkout_session_id?: string | null; updated_at?: string };
+      };
+      billing_customers: {
+        Insert: { created_at?: string; provider?: string; stripe_customer_id: string; updated_at?: string; user_id: string };
+        Relationships: Relationship[];
+        Row: { created_at: string; provider: string; stripe_customer_id: string; updated_at: string; user_id: string };
+        Update: { stripe_customer_id?: string; updated_at?: string };
+      };
+      billing_subscriptions: {
+        Insert: { cancel_at_period_end?: boolean; canceled_at?: string | null; created_at?: string; current_period_end?: string | null; current_period_start?: string | null; ended_at?: string | null; id?: string; last_stripe_event_created_at: number; provider?: string; status: string; stripe_price_id: string; stripe_subscription_id: string; updated_at?: string; user_id: string };
+        Relationships: Relationship[];
+        Row: { cancel_at_period_end: boolean; canceled_at: string | null; created_at: string; current_period_end: string | null; current_period_start: string | null; ended_at: string | null; id: string; last_stripe_event_created_at: number; provider: string; status: string; stripe_price_id: string; stripe_subscription_id: string; updated_at: string; user_id: string };
+        Update: never;
+      };
       completion_reflections: {
         Insert: { completion_id: string; created_at?: string; reflection_text: string; updated_at?: string };
         Relationships: Relationship[];
@@ -51,6 +69,12 @@ export type Database = {
         Row: { avatar_url: string | null; created_at: string; date_of_birth: string | null; full_name: string | null; id: string; language: string; phone: string | null; updated_at: string };
         Update: { avatar_url?: string | null; date_of_birth?: string | null; full_name?: string | null; language?: string; phone?: string | null };
       };
+      stripe_webhook_events: {
+        Insert: { error_code?: string | null; event_type: string; processed_at?: string | null; processing_status?: string; received_at?: string; stripe_created_at: number; stripe_event_id: string; updated_at?: string };
+        Relationships: Relationship[];
+        Row: { error_code: string | null; event_type: string; processed_at: string | null; processing_status: string; received_at: string; stripe_created_at: number; stripe_event_id: string; updated_at: string };
+        Update: { error_code?: string | null; processed_at?: string | null; processing_status?: string; updated_at?: string };
+      };
     };
     Views: {
       journal_entries: {
@@ -59,9 +83,17 @@ export type Database = {
       };
     };
     Functions: {
+      claim_stripe_webhook_event: {
+        Args: { p_event_type: string; p_stripe_created_at: number; p_stripe_event_id: string };
+        Returns: boolean;
+      };
       complete_exercise: {
         Args: { p_completed_at?: string; p_duration_seconds?: number; p_emotional_score?: number; p_exercise_id: string; p_idempotency_key: string };
         Returns: Database["public"]["Tables"]["exercise_completions"]["Row"];
+      };
+      sync_stripe_subscription: {
+        Args: { p_cancel_at_period_end: boolean; p_canceled_at: string | null; p_current_period_end: string | null; p_current_period_start: string | null; p_ended_at: string | null; p_status: string; p_stripe_event_created_at: number; p_stripe_price_id: string; p_stripe_subscription_id: string; p_user_id: string };
+        Returns: boolean;
       };
     };
     Enums: Record<never, never>;

@@ -9,6 +9,7 @@ function requireEnv(name: string, value: string | undefined): string {
 }
 
 export const env = {
+  enableStripeTestCheckout: process.env.EXPO_PUBLIC_ENABLE_STRIPE_TEST_CHECKOUT === "true",
   supabasePublishableKey: requireEnv(
     "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { colors, fonts } from "@/config/onboarding-theme";
 
 type AppButtonProps = {
+  accessibilityLabel?: string;
   allowPressWhenDisabled?: boolean;
   children: ReactNode;
   disabled?: boolean;
@@ -11,12 +12,13 @@ type AppButtonProps = {
   onPress: () => void;
 };
 
-export function AppButton({ allowPressWhenDisabled = false, children, disabled = false, loading = false, onPress }: AppButtonProps) {
+export function AppButton({ accessibilityLabel, allowPressWhenDisabled = false, children, disabled = false, loading = false, onPress }: AppButtonProps) {
   const interactionDisabled = loading || (disabled && !allowPressWhenDisabled);
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: interactionDisabled, busy: loading }}
       disabled={interactionDisabled}
       onPress={onPress}
