@@ -7,5 +7,6 @@
     },
     "strict": true
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "src/types/uniwind.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "src/types/uniwind.d.ts"],
+  "exclude": ["supabase/functions/**"]
 }
