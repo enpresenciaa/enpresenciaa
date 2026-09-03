@@ -34,9 +34,9 @@ export type Database = {
         Update: { reflection_text?: string; updated_at?: string };
       };
       exercise_completions: {
-        Insert: { completed_at?: string; created_at?: string; duration_seconds?: number | null; emotional_score?: number | null; exercise_id: string; id?: string; idempotency_key: string; repetition_number: number; user_id: string };
+        Insert: { advances_journey?: boolean; business_date: string; completed_at?: string; created_at?: string; duration_seconds?: number | null; emotional_score?: number | null; exercise_id: string; id?: string; idempotency_key: string; repetition_number: number; user_id: string };
         Relationships: Relationship[];
-        Row: { completed_at: string; created_at: string; duration_seconds: number | null; emotional_score: number | null; exercise_id: string; id: string; idempotency_key: string; repetition_number: number; user_id: string };
+        Row: { advances_journey: boolean; business_date: string; completed_at: string; created_at: string; duration_seconds: number | null; emotional_score: number | null; exercise_id: string; id: string; idempotency_key: string; repetition_number: number; user_id: string };
         Update: never;
       };
       exercise_contents: {
@@ -88,7 +88,7 @@ export type Database = {
         Returns: boolean;
       };
       complete_exercise: {
-        Args: { p_completed_at?: string; p_duration_seconds?: number; p_emotional_score?: number; p_exercise_id: string; p_idempotency_key: string };
+        Args: { p_duration_seconds?: number; p_emotional_score?: number; p_exercise_id: string; p_idempotency_key: string; p_reflection_text?: string };
         Returns: Database["public"]["Tables"]["exercise_completions"]["Row"];
       };
       sync_stripe_subscription: {
