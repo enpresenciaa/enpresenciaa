@@ -7,6 +7,7 @@ import type { AuthContextValue, AuthStatus } from "@/features/auth/context/AuthC
 import { AuthContext } from "@/features/auth/context/AuthContext";
 import type { SocialOAuthProvider } from "@/features/auth/services/auth.service";
 import { completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
+import { clearJourneyCompletionDrafts } from "@/features/journey/services/journey-completion-draft.storage";
 import { queryClient } from "@/lib/query-client";
 import { getPersistedOnboardingCompleted, persistOnboardingCompleted } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
@@ -69,6 +70,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return result;
   }, []);
+
+  const handleSignOut = useCallback(async () => {
+    const userId = session?.user.id;
+    await signOut();
+
+    if (userId) {
+      await clearJourneyCompletionDrafts(userId);
+    }
+  }, [session?.user.id]);
 
   useEffect(() => {
     if (!linkingUrl?.includes("auth/callback") || !hasOAuthCallbackParams(linkingUrl)) {
@@ -187,12 +197,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session,
     signInWithOAuth: handleSignInWithOAuth,
     signInWithPassword,
-    signOut,
+    signOut: handleSignOut,
     signUpWithPassword: handleSignUpWithPassword,
     status,
     updateEmail,
     user: session?.user ?? null,
-  }), [handleCompleteOnboarding, handleSignInWithOAuth, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
+  }), [handleCompleteOnboarding, handleSignInWithOAuth, handleSignOut, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }

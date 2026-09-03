@@ -21,6 +21,23 @@ export type JourneyCompletion = {
   id: string;
 };
 
+export type JourneyCompletionDraft = {
+  durationSeconds: number | null;
+  emotionalScore: number | null;
+  exerciseId: string;
+  idempotencyKey: string;
+  reflectionText: string | null;
+  updatedAt: string;
+  userId: string;
+};
+
+export type JourneyCompletionReceipt = JourneyCompletion & {
+  advancesJourney: boolean;
+  businessDate: string;
+  emotionalScore: number | null;
+  repetitionNumber: number;
+};
+
 export type JourneyProgress = {
   exerciseId: string;
   progressPercentage: number;

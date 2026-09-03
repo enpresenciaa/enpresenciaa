@@ -25,7 +25,7 @@ async function removeChunks(key: string, count: number): Promise<void> {
   ));
 }
 
-export const authStorage = {
+export const secureStorage = {
   async getItem(key: string): Promise<string | null> {
     const count = await getChunkCount(key);
 
@@ -39,7 +39,7 @@ export const authStorage = {
     ));
 
     if (chunks.includes(null)) {
-      await authStorage.removeItem(key);
+      await secureStorage.removeItem(key);
       return null;
     }
 
@@ -75,3 +75,5 @@ export const authStorage = {
     }
   },
 };
+
+export const authStorage = secureStorage;

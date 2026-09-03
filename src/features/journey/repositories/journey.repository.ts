@@ -1,5 +1,6 @@
-import type { JourneySnapshot } from "@/features/journey/domain/journey.types";
+import type { JourneyCompletionDraft, JourneyCompletionReceipt, JourneySnapshot } from "@/features/journey/domain/journey.types";
 
 export interface JourneyRepository {
+  completeExercise: (draft: JourneyCompletionDraft) => Promise<JourneyCompletionReceipt>;
   getSnapshot: () => Promise<JourneySnapshot>;
 }
