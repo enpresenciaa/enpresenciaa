@@ -159,6 +159,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (event === "SIGNED_OUT") {
         queryClient.removeQueries({ queryKey: ["profile"] });
         queryClient.removeQueries({ queryKey: ["journal"] });
+        queryClient.removeQueries({ queryKey: ["journey"] });
         queryClient.removeQueries({ queryKey: ["billing-subscription"] });
       }
 
