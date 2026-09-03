@@ -1,4 +1,4 @@
-import type { JourneyCompletion, JourneyExercise, JourneyProgress, JourneySnapshot, PublicationStatus } from "@/features/journey/domain/journey.types";
+import type { JourneyCompletion, JourneyCompletionDraft, JourneyCompletionReceipt, JourneyExercise, JourneyProgress, JourneySnapshot, PublicationStatus } from "@/features/journey/domain/journey.types";
 import type { JourneyRepository } from "@/features/journey/repositories/journey.repository";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/types/database";
@@ -29,6 +29,30 @@ function mapExercise(row: ExerciseRow, level: LevelRow, globalPosition: number):
 }
 
 export const supabaseJourneyRepository: JourneyRepository = {
+  async completeExercise(draft: JourneyCompletionDraft): Promise<JourneyCompletionReceipt> {
+    const { data, error } = await supabase.rpc("complete_exercise", {
+      p_duration_seconds: draft.durationSeconds ?? undefined,
+      p_emotional_score: draft.emotionalScore ?? undefined,
+      p_exercise_id: draft.exerciseId,
+      p_idempotency_key: draft.idempotencyKey,
+      p_reflection_text: draft.reflectionText ?? undefined,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      advancesJourney: data.advances_journey,
+      businessDate: data.business_date,
+      completedAt: data.completed_at,
+      emotionalScore: data.emotional_score,
+      exerciseId: data.exercise_id,
+      id: data.id,
+      repetitionNumber: data.repetition_number,
+    };
+  },
+
   async getSnapshot(): Promise<JourneySnapshot> {
     const [levelsResult, exercisesResult, completionsResult, progressResult] = await Promise.all([
       supabase.from("levels").select("*").eq("publication_status", "published").order("number"),
