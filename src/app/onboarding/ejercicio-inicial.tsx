@@ -1,5 +1,7 @@
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,21 +11,42 @@ import { BackButton } from "@/components/onboarding/BackButton";
 import { MoodSelector } from "@/components/onboarding/MoodSelector";
 import type { Mood } from "@/components/onboarding/MoodSelector";
 import { colors, fonts } from "@/config/onboarding-theme";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
 
 type FormValues = { mood?: Mood };
 
 export default function InitialExerciseRoute() {
   const router = useRouter();
+  const { completeOnboarding } = useAuth();
+  const submitLockRef = useRef(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const player = useVideoPlayer(require("@/assets/videos/video_introduccion.mp4"), videoPlayer => {
     videoPlayer.loop = false;
     videoPlayer.muted = true;
   });
-  const { control, formState: { errors, isValid }, handleSubmit } = useForm<FormValues>({
+  const { control, formState: { errors, isSubmitting, isValid }, handleSubmit } = useForm<FormValues>({
     defaultValues: { mood: undefined },
     mode: "onChange",
   });
 
-  const onSubmit = handleSubmit(() => router.push("/onboarding/poder-del-cambio"));
+  const onSubmit = handleSubmit(async () => {
+    if (submitLockRef.current) {
+      return;
+    }
+
+    submitLockRef.current = true;
+    setSubmissionError(null);
+
+    try {
+      await completeOnboarding();
+      router.replace("/(tabs)/empezar" as Href);
+    } catch (error) {
+      setSubmissionError(getAuthErrorMessage(error));
+    } finally {
+      submitLockRef.current = false;
+    }
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -51,7 +74,8 @@ export default function InitialExerciseRoute() {
             render={({ field: { onChange, value } }) => <MoodSelector error={errors.mood?.message} onChange={onChange} value={value} />}
           />
         </View>
-        <AppButton disabled={!isValid} onPress={onSubmit}>Continuar</AppButton>
+        {submissionError ? <Text accessibilityRole="alert" style={styles.error}>{submissionError}</Text> : null}
+        <AppButton disabled={!isValid || isSubmitting} loading={isSubmitting} onPress={onSubmit}>Continuar</AppButton>
       </View>
     </SafeAreaView>
   );
@@ -60,6 +84,7 @@ export default function InitialExerciseRoute() {
 const styles = StyleSheet.create({
   centerGroup: { flex: 1, justifyContent: "center" },
   content: { alignSelf: "center", flex: 1, maxWidth: 560, padding: 24, paddingBottom: 28, width: "100%" },
+  error: { color: colors.error, fontFamily: fonts.body, fontSize: 13, marginBottom: 10, textAlign: "center" },
   header: { marginTop: 54 },
   question: { color: colors.text, fontFamily: fonts.title, fontSize: 30, lineHeight: 42, marginBottom: 32, textAlign: "center" },
   safeArea: { backgroundColor: colors.background, flex: 1 },

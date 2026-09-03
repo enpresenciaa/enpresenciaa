@@ -7,6 +7,7 @@ type ProfileHeaderProps = {
   avatarUrl: string | null;
   createdAt: string | null;
   displayName: string;
+  subtitle?: string;
 };
 
 function formatJourneyDate(value: string | null): string {
@@ -31,7 +32,7 @@ function getInitials(name: string): string {
   return name.trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join("") || "YO";
 }
 
-export function ProfileHeader({ avatarUrl, createdAt, displayName }: ProfileHeaderProps) {
+export function ProfileHeader({ avatarUrl, createdAt, displayName, subtitle }: ProfileHeaderProps) {
   return (
     <>
       <View style={styles.header}>
@@ -50,7 +51,7 @@ export function ProfileHeader({ avatarUrl, createdAt, displayName }: ProfileHead
         </View>
         <View style={styles.copy}>
           <Text accessibilityRole="header" numberOfLines={1} style={styles.name}>{displayName}</Text>
-          <Text style={styles.journey}>Tu camino desde {formatJourneyDate(createdAt)}</Text>
+          <Text style={styles.journey}>{subtitle ?? `Tu camino desde ${formatJourneyDate(createdAt)}`}</Text>
         </View>
       </View>
       <View style={styles.divider} />

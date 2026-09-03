@@ -1,3 +1,4 @@
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -58,7 +59,7 @@ export default function CreateAccountRoute() {
         setConfirmationFeedback(null);
         setConfirmationEmail(normalizedEmail);
       } else {
-        router.replace("/onboarding/empezar");
+        router.replace("/(tabs)/empezar" as Href);
       }
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));

@@ -12,7 +12,7 @@ export function useBillingSubscription(poll = false) {
   const { status, user } = useAuth();
 
   return useQuery({
-    enabled: status === "authenticated" && Boolean(user),
+    enabled: status === "permanent" && Boolean(user),
     queryFn: () => {
       if (!user) {
         throw new Error("AUTH_SESSION_REQUIRED");
