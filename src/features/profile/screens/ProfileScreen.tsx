@@ -34,12 +34,15 @@ function ProfileMenuItem({ icon, label, onPress, trailingIcon = "chevron-forward
 
 export function ProfileScreen() {
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { signOut, status, user } = useAuth();
   const signOutLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { data: profile, error: profileError, isFetching, refetch } = useProfile();
-  const profileDisplay = getProfileDisplayData(user, profile);
+  const isGuest = status === "anonymous";
+  const profileDisplay = isGuest ?
+      { avatarUrl: null, createdAt: null, displayName: "Invitado", email: "" } :
+      getProfileDisplayData(user, profile);
 
   function showComingSoon(section: string) {
     Alert.alert(section, "Esta sección estará disponible próximamente.");
@@ -68,21 +71,33 @@ export function ProfileScreen() {
     <View style={styles.screen}>
       <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <ProfileHeader avatarUrl={profileDisplay.avatarUrl} createdAt={profileDisplay.createdAt} displayName={profileDisplay.displayName} />
+          <ProfileHeader
+            avatarUrl={profileDisplay.avatarUrl}
+            createdAt={profileDisplay.createdAt}
+            displayName={profileDisplay.displayName}
+            subtitle={isGuest ? "Sesión temporal de invitado" : undefined}
+          />
 
-          {isFetching && !profile ? <ActivityIndicator color={colors.primary} style={styles.profileStatus} /> : null}
-          {profileError ? (
+          {!isGuest && isFetching && !profile ? <ActivityIndicator color={colors.primary} style={styles.profileStatus} /> : null}
+          {!isGuest && profileError ? (
             <Pressable accessibilityRole="button" onPress={() => void refetch()}>
               <Text accessibilityRole="alert" style={styles.error}>No pudimos cargar tu perfil. Toca para reintentar.</Text>
             </Pressable>
           ) : null}
 
           <View style={styles.menu}>
-            <ProfileMenuItem icon="create-outline" label="Editar perfil" onPress={() => router.push("/(tabs)/yo/editar-perfil")} />
+            {isGuest ? (
+              <>
+                <ProfileMenuItem icon="person-add-outline" label="Crear cuenta" onPress={() => showComingSoon("Conversión de cuenta invitada")} />
+                <ProfileMenuItem icon="log-in-outline" label="Iniciar sesión" onPress={() => showComingSoon("Migración del progreso invitado")} />
+              </>
+            ) : (
+              <ProfileMenuItem icon="create-outline" label="Editar perfil" onPress={() => router.push("/(tabs)/yo/editar-perfil")} />
+            )}
             <ProfileMenuItem icon="notifications-outline" label="Notificaciones" onPress={() => router.push("/(tabs)/notificaciones")} />
             <ProfileMenuItem icon="lock-closed-outline" label="Privacidad" onPress={() => showComingSoon("Privacidad")} />
             <ProfileMenuItem icon="globe-outline" label="Idioma" onPress={() => showComingSoon("Idioma")} trailingIcon="chevron-down" />
-            <ProfileMenuItem icon="diamond-outline" label="Tipo de suscripción" onPress={() => router.push("/(tabs)/yo/suscripcion")} />
+            {!isGuest ? <ProfileMenuItem icon="diamond-outline" label="Tipo de suscripción" onPress={() => router.push("/(tabs)/yo/suscripcion")} /> : null}
             <ProfileMenuItem icon="log-out-outline" label="Cerrar sesión" onPress={() => void handleSignOut()} />
           </View>
 

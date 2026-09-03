@@ -8,13 +8,29 @@ import { AuthContext } from "@/features/auth/context/AuthContext";
 import type { SocialOAuthProvider } from "@/features/auth/services/auth.service";
 import { completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
 import { queryClient } from "@/lib/query-client";
+import { getPersistedOnboardingCompleted, persistOnboardingCompleted } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
+
+function getSessionStatus(session: Session | null): AuthStatus {
+  if (!session) {
+    return "unauthenticated";
+  }
+
+  return session.user.is_anonymous ? "anonymous" : "permanent";
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const linkingUrl = Linking.useLinkingURL();
   const processedCallbackUrlRef = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(getPersistedOnboardingCompleted);
+
+  const handleCompleteOnboarding = useCallback(async () => {
+    await completeOnboarding();
+    persistOnboardingCompleted();
+    setHasCompletedOnboarding(true);
+  }, []);
 
   const handleSignInWithOAuth = useCallback(async (provider: SocialOAuthProvider) => {
     const result = await signInWithOAuthService(provider);
@@ -30,7 +46,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     setSession(data.session);
-    setStatus(data.session ? "authenticated" : "unauthenticated");
+    setStatus(getSessionStatus(data.session));
 
     return result;
   }, []);
@@ -49,7 +65,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     setSession(data.session);
-    setStatus(data.session ? "authenticated" : "unauthenticated");
+    setStatus(getSessionStatus(data.session));
 
     return result;
   }, []);
@@ -83,7 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         if (active) {
           setSession(data.session);
-          setStatus(data.session ? "authenticated" : "unauthenticated");
+          setStatus(getSessionStatus(data.session));
         }
       })
       .catch(async () => {
@@ -91,7 +107,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         if (active) {
           setSession(data.session);
-          setStatus(data.session ? "authenticated" : "unauthenticated");
+          setStatus(getSessionStatus(data.session));
         }
       });
 
@@ -111,7 +127,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       setSession(nextSession);
-      setStatus(nextSession ? "authenticated" : "unauthenticated");
+      setStatus(getSessionStatus(nextSession));
     }
 
     const hydrateSession = async () => {
@@ -164,8 +180,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
-    completeOnboarding,
-    hasCompletedOnboarding: session?.user.user_metadata.onboarding_completed === true,
+    completeOnboarding: handleCompleteOnboarding,
+    hasCompletedOnboarding,
     resendConfirmationEmail,
     session,
     signInWithOAuth: handleSignInWithOAuth,
@@ -175,7 +191,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     status,
     updateEmail,
     user: session?.user ?? null,
-  }), [handleSignInWithOAuth, handleSignUpWithPassword, session, status]);
+  }), [handleCompleteOnboarding, handleSignInWithOAuth, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }

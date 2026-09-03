@@ -3,7 +3,7 @@ import { createContext } from "react";
 
 import type { EmailPasswordCredentials, EmailUpdateResult, OAuthResult, SignUpCredentials, SignUpResult, SocialOAuthProvider } from "@/features/auth/services/auth.service";
 
-export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+export type AuthStatus = "loading" | "unauthenticated" | "anonymous" | "permanent" | "converting" | "merging";
 
 export interface AuthContextValue {
   completeOnboarding: () => Promise<void>;

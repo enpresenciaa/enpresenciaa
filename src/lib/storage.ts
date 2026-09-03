@@ -11,6 +11,7 @@ export const zustandStorage: StateStorage = {
 };
 
 export const THEME_KEY = "app-theme";
+export const ONBOARDING_COMPLETED_KEY = "onboarding-completed";
 
 export type AppTheme = UniwindConfig["themes"][number] | "system";
 
@@ -18,3 +19,11 @@ export function getPersistedTheme(): AppTheme | null {
   return (storage.getString(THEME_KEY) as AppTheme) ?? null;
 }
 export const persistTheme = (theme: AppTheme) => storage.set(THEME_KEY, theme);
+
+export function getPersistedOnboardingCompleted(): boolean {
+  return storage.getBoolean(ONBOARDING_COMPLETED_KEY) === true;
+}
+
+export function persistOnboardingCompleted(): void {
+  storage.set(ONBOARDING_COMPLETED_KEY, true);
+}

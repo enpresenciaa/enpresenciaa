@@ -25,16 +25,14 @@ function AuthNavigator() {
     );
   }
 
-  const isAuthenticated = status === "authenticated";
+  const hasSession = status === "anonymous" || status === "permanent" || status === "converting" || status === "merging";
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="onboarding" />
-      <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen name="auth/callback" />
-      </Stack.Protected>
-      <Stack.Protected guard={isAuthenticated && hasCompletedOnboarding}>
+      <Stack.Screen name="auth/callback" />
+      <Stack.Protected guard={hasSession && (status === "permanent" || hasCompletedOnboarding)}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="billing/return" />
         <Stack.Screen name="camino/nivel/[levelId]" />

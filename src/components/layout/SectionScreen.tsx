@@ -18,7 +18,9 @@ export function SectionScreen({ backgroundSource, children, title }: SectionScre
         <View className="flex-1 items-center justify-center px-6">
           <Text className="mb-3 text-sm font-medium text-text-secondary">Vista actual: {title}</Text>
           <Text className="text-3xl font-semibold text-text">{title}</Text>
-          {children}
+          {typeof children === "string" ? (
+            <Text className="mt-4 max-w-md text-center text-sm text-text-secondary">{children}</Text>
+          ) : children}
         </View>
       </SafeAreaView>
     </View>

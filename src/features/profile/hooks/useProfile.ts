@@ -9,10 +9,10 @@ export function getProfileQueryKey(userId: string | undefined) {
 }
 
 export function useProfile() {
-  const { user } = useAuth();
+  const { status, user } = useAuth();
 
   return useQuery({
-    enabled: Boolean(user),
+    enabled: status === "permanent" && Boolean(user),
     queryFn: () => {
       if (!user) {
         throw new Error("AUTH_SESSION_REQUIRED");

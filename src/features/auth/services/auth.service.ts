@@ -234,14 +234,34 @@ export async function signOut(): Promise<void> {
   }
 }
 
-export async function completeOnboarding(): Promise<void> {
-  const { error } = await supabase.auth.updateUser({
-    data: { onboarding_completed: true },
+let onboardingCompletionAttempt: Promise<void> | null = null;
+
+async function completeOnboardingOnce(): Promise<void> {
+  const { data: currentSession, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw sessionError;
+  }
+
+  if (!currentSession.session) {
+    const { error: anonymousError } = await supabase.auth.signInAnonymously();
+
+    if (anonymousError) {
+      throw anonymousError;
+    }
+  }
+}
+
+export function completeOnboarding(): Promise<void> {
+  if (onboardingCompletionAttempt) {
+    return onboardingCompletionAttempt;
+  }
+
+  onboardingCompletionAttempt = completeOnboardingOnce().finally(() => {
+    onboardingCompletionAttempt = null;
   });
 
-  if (error) {
-    throw error;
-  }
+  return onboardingCompletionAttempt;
 }
 
 export async function updateEmail(email: string): Promise<EmailUpdateResult> {

@@ -25,7 +25,7 @@ export function useJournal(filter: JournalFilter, search: string) {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   return useInfiniteQuery<JournalPage, Error, InfiniteData<JournalPage>, ReturnType<typeof getJournalQueryKey>, number>({
-    enabled: status === "authenticated" && Boolean(user),
+    enabled: (status === "anonymous" || status === "permanent") && Boolean(user),
     getNextPageParam: lastPage => lastPage.nextOffset ?? undefined,
     initialPageParam: 0,
     queryFn: ({ pageParam }) => {
