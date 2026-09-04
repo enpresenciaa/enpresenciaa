@@ -16,6 +16,7 @@ export type JourneyExercise = {
 };
 
 export type JourneyCompletion = {
+  advancesJourney: boolean;
   completedAt: string;
   exerciseId: string;
   id: string;
@@ -32,7 +33,6 @@ export type JourneyCompletionDraft = {
 };
 
 export type JourneyCompletionReceipt = JourneyCompletion & {
-  advancesJourney: boolean;
   businessDate: string;
   emotionalScore: number | null;
   repetitionNumber: number;
@@ -47,15 +47,17 @@ export type JourneyProgress = {
 export type JourneySnapshot = {
   completions: JourneyCompletion[];
   exercises: JourneyExercise[];
+  favoriteExerciseIds: string[];
   progress: JourneyProgress[];
 };
 
 export type JourneyExerciseState = JourneyExercise & {
+  isFavorite: boolean;
   status: JourneyExerciseStatus;
 };
 
 export type JourneyState = {
-  completedToday: boolean;
+  advancedToday: boolean;
   exercises: JourneyExerciseState[];
   nextExercise: JourneyExerciseState | null;
 };

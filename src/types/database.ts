@@ -75,6 +75,12 @@ export type Database = {
         Row: { error_code: string | null; event_type: string; processed_at: string | null; processing_status: string; received_at: string; stripe_created_at: number; stripe_event_id: string; updated_at: string };
         Update: { error_code?: string | null; processed_at?: string | null; processing_status?: string; updated_at?: string };
       };
+      user_favorites: {
+        Insert: { created_at?: string; exercise_id: string; user_id: string };
+        Relationships: Relationship[];
+        Row: { created_at: string; exercise_id: string; user_id: string };
+        Update: never;
+      };
     };
     Views: {
       journal_entries: {

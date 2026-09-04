@@ -38,3 +38,19 @@ export function useJourney() {
     queryKey: getJourneyQueryKey(user?.id),
   });
 }
+
+export function useSetExerciseFavorite() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ exerciseId, isFavorite }: { exerciseId: string; isFavorite: boolean }) => {
+      if (!user) {
+        throw new Error("AUTH_SESSION_REQUIRED");
+      }
+
+      await supabaseJourneyRepository.setExerciseFavorite(user.id, exerciseId, isFavorite);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: getJourneyQueryKey(user?.id) }),
+  });
+}
