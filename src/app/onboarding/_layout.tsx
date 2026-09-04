@@ -10,6 +10,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="evaluacion-inicial" />
       <Stack.Screen name="poder-del-cambio" />
       <Stack.Screen name="crear-cuenta" />
+      <Stack.Screen name="completar-cuenta" />
       <Stack.Screen name="login" />
     </Stack>
   );

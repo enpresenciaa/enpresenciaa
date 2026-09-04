@@ -9,16 +9,16 @@ export default function IndexRoute() {
   const linkingUrl = Linking.useURL();
   const { hasCompletedOnboarding, status } = useAuth();
 
+  if (linkingUrl?.includes("auth/callback") && hasOAuthCallbackParams(linkingUrl)) {
+    return <Redirect href="/auth/callback" />;
+  }
+
   if (status === "permanent" || (status === "anonymous" && hasCompletedOnboarding)) {
     return <Redirect href={"/(tabs)/empezar" as Href} />;
   }
 
   if (status === "anonymous") {
     return <Redirect href="/onboarding/ejercicio-inicial" />;
-  }
-
-  if (linkingUrl?.includes("auth/callback") && hasOAuthCallbackParams(linkingUrl)) {
-    return <Redirect href="/auth/callback" />;
   }
 
   return <Redirect href="/onboarding/splash" />;

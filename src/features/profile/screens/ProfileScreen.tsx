@@ -88,7 +88,7 @@ export function ProfileScreen() {
           <View style={styles.menu}>
             {isGuest ? (
               <>
-                <ProfileMenuItem icon="person-add-outline" label="Crear cuenta" onPress={() => showComingSoon("Conversión de cuenta invitada")} />
+                <ProfileMenuItem icon="person-add-outline" label="Crear cuenta" onPress={() => router.push("/onboarding/crear-cuenta")} />
                 <ProfileMenuItem icon="log-in-outline" label="Iniciar sesión" onPress={() => showComingSoon("Migración del progreso invitado")} />
               </>
             ) : (
