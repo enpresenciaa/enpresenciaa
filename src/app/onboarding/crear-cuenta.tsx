@@ -14,6 +14,7 @@ import type { OAuthProvider } from "@/components/onboarding/OAuthOptions";
 import { PhoneNumberInput } from "@/components/onboarding/PhoneNumberInput";
 import { colors, fonts } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { clearPendingAnonymousEmailConversion, setPendingAnonymousEmailConversion } from "@/features/auth/services/anonymous-email-conversion.storage";
 import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
 
 type FormValues = { confirmPassword: string; countryCode: string; email: string; fullName: string; password: string; phoneNumber: string; privacy: boolean; terms: boolean };
@@ -25,7 +26,8 @@ function isValidEmail(value: string): boolean {
 
 export default function CreateAccountRoute() {
   const router = useRouter();
-  const { resendConfirmationEmail, signInWithOAuth, signUpWithPassword } = useAuth();
+  const { beginAnonymousEmailConversion, linkAnonymousIdentity, resendAnonymousEmailConversion, resendConfirmationEmail, signInWithOAuth, signUpWithPassword, status, user } = useAuth();
+  const isAnonymousConversion = status === "anonymous" || status === "converting";
   const oauthLockRef = useRef(false);
   const submitLockRef = useRef(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -47,6 +49,25 @@ export default function CreateAccountRoute() {
     setAuthError(null);
 
     try {
+      if (isAnonymousConversion) {
+        if (!user?.id) {
+          throw new Error("anonymous_session_required");
+        }
+
+        await setPendingAnonymousEmailConversion({
+          email: values.email.trim().toLowerCase(),
+          userId: user.id,
+        });
+        const conversion = await beginAnonymousEmailConversion({
+          email: values.email,
+          fullName: values.fullName,
+          phone: `${values.countryCode}${values.phoneNumber}`,
+        });
+        setConfirmationFeedback(null);
+        setConfirmationEmail(conversion.email);
+        return;
+      }
+
       const result = await signUpWithPassword({
         email: values.email,
         fullName: values.fullName,
@@ -77,7 +98,11 @@ export default function CreateAccountRoute() {
     setConfirmationFeedback(null);
 
     try {
-      await resendConfirmationEmail(confirmationEmail);
+      if (isAnonymousConversion) {
+        await resendAnonymousEmailConversion(confirmationEmail);
+      } else {
+        await resendConfirmationEmail(confirmationEmail);
+      }
       setConfirmationFeedback("Enviamos un nuevo enlace de confirmación.");
     } catch (error) {
       setConfirmationFeedback(getAuthErrorMessage(error));
@@ -86,14 +111,23 @@ export default function CreateAccountRoute() {
     }
   }
 
-  function handleChangeConfirmationEmail() {
+  async function handleChangeConfirmationEmail() {
+    if (isAnonymousConversion) {
+      await clearPendingAnonymousEmailConversion();
+    }
+
     setConfirmationFeedback(null);
     setConfirmationEmail(null);
   }
 
   function handleCloseConfirmation() {
     setConfirmationEmail(null);
-    router.replace("/onboarding/login");
+
+    if (isAnonymousConversion) {
+      router.replace("/(tabs)/yo");
+    } else {
+      router.replace("/onboarding/login");
+    }
   }
 
   async function handleOAuthPress(provider: OAuthProvider) {
@@ -108,7 +142,14 @@ export default function CreateAccountRoute() {
     setLoadingProvider(provider);
 
     try {
-      await signInWithOAuth(authProvider);
+      const result = isAnonymousConversion ?
+          await linkAnonymousIdentity(authProvider) :
+          await signInWithOAuth(authProvider);
+
+      if (result === "success" && isAnonymousConversion) {
+        await clearPendingAnonymousEmailConversion();
+        router.replace("/(tabs)/empezar" as Href);
+      }
     } catch (error) {
       setAuthError(getAuthErrorMessage(error));
     } finally {
@@ -149,32 +190,42 @@ export default function CreateAccountRoute() {
           />
         )}
       />
-      <Controller control={control} name="password" rules={{ maxLength: { message: "Máximo 128 caracteres", value: 128 }, minLength: { message: "Usa al menos 8 caracteres", value: 8 }, required: "La contraseña es obligatoria" }} render={({ field: { onBlur, onChange, value } }) => <AppInput autoCapitalize="none" autoComplete="new-password" compact error={errors.password?.message} label="Contraseña" maxLength={128} onBlur={onBlur} onChangeText={onChange} password placeholder="Contraseña" showLabel={false} textContentType="newPassword" value={value} />} />
-      <Controller control={control} name="confirmPassword" rules={{ required: "Confirma tu contraseña", validate: value => value === getValues("password") || "Las contraseñas no coinciden" }} render={({ field: { onBlur, onChange, value } }) => <AppInput autoCapitalize="none" autoComplete="new-password" compact error={errors.confirmPassword?.message} label="Confirmar contraseña" maxLength={128} onBlur={onBlur} onChangeText={onChange} password placeholder="Confirmar contraseña" showLabel={false} textContentType="newPassword" value={value} />} />
+      {!isAnonymousConversion ? (
+        <>
+          <Controller control={control} name="password" rules={{ maxLength: { message: "Máximo 128 caracteres", value: 128 }, minLength: { message: "Usa al menos 8 caracteres", value: 8 }, required: "La contraseña es obligatoria" }} render={({ field: { onBlur, onChange, value } }) => <AppInput autoCapitalize="none" autoComplete="new-password" compact error={errors.password?.message} label="Contraseña" maxLength={128} onBlur={onBlur} onChangeText={onChange} password placeholder="Contraseña" showLabel={false} textContentType="newPassword" value={value} />} />
+          <Controller control={control} name="confirmPassword" rules={{ required: "Confirma tu contraseña", validate: value => value === getValues("password") || "Las contraseñas no coinciden" }} render={({ field: { onBlur, onChange, value } }) => <AppInput autoCapitalize="none" autoComplete="new-password" compact error={errors.confirmPassword?.message} label="Confirmar contraseña" maxLength={128} onBlur={onBlur} onChangeText={onChange} password placeholder="Confirmar contraseña" showLabel={false} textContentType="newPassword" value={value} />} />
+        </>
+      ) : null}
       <View style={styles.checks}>
         <Controller control={control} name="terms" rules={{ validate: value => value || "Debes aceptar los términos y la privacidad" }} render={({ field: { onChange, value } }) => <AppCheckbox accessibilityLabel="Acepto los Términos y Privacidad" checked={value} error={errors.terms?.message} label={<Text style={styles.checkText}>Acepto los <Text style={styles.highlight}>Términos y Privacidad</Text></Text>} onChange={onChange} />} />
         <Controller control={control} name="privacy" rules={{ validate: value => value || "Debes aceptar el aviso de privacidad" }} render={({ field: { onChange, value } }) => <AppCheckbox accessibilityLabel="Aviso de privacidad" checked={value} error={errors.privacy?.message} label={<Text style={styles.checkText}>Aviso de privacidad</Text>} onChange={onChange} />} />
       </View>
       {authError ? <Text accessibilityRole="alert" style={styles.authError}>{authError}</Text> : null}
-      <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>Registrarme</AppButton>
+      <AppButton allowPressWhenDisabled disabled={!isValid} loading={isSubmitting} onPress={onSubmit}>
+        {isAnonymousConversion ? "Confirmar correo" : "Registrarme"}
+      </AppButton>
       <OAuthOptions
         disabled={isSubmitting || loadingProvider !== null}
         enabledProviders={["Google", "Facebook"]}
         loadingProvider={loadingProvider}
         onProviderPress={provider => void handleOAuthPress(provider)}
         separatorText="o"
-        title="Regístrate con"
+        title={isAnonymousConversion ? "O vincula" : "Regístrate con"}
       />
       <View style={styles.footer}>
-        <Pressable accessibilityRole="link" onPress={() => router.push("/onboarding/login")} style={styles.linkButton}>
-          <Text style={styles.link}>¿Ya tienes cuenta? <Text style={styles.linkHighlight}>Inicia sesión</Text></Text>
-        </Pressable>
+        {isAnonymousConversion ? (
+          <Text style={styles.link}>El inicio de sesión en una cuenta existente se habilitará cuando esté validada la transferencia segura del progreso.</Text>
+        ) : (
+          <Pressable accessibilityRole="link" onPress={() => router.push("/onboarding/login")} style={styles.linkButton}>
+            <Text style={styles.link}>¿Ya tienes cuenta? <Text style={styles.linkHighlight}>Inicia sesión</Text></Text>
+          </Pressable>
+        )}
       </View>
       <EmailConfirmationModal
         email={confirmationEmail}
         feedback={confirmationFeedback}
         isResending={isResendingConfirmation}
-        onChangeEmail={handleChangeConfirmationEmail}
+        onChangeEmail={() => void handleChangeConfirmationEmail()}
         onClose={handleCloseConfirmation}
         onResend={() => void handleResendConfirmation()}
       />

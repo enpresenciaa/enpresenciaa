@@ -5,8 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { AuthContextValue, AuthStatus } from "@/features/auth/context/AuthContext";
 import { AuthContext } from "@/features/auth/context/AuthContext";
+import { clearPendingAnonymousEmailConversion } from "@/features/auth/services/anonymous-email-conversion.storage";
 import type { SocialOAuthProvider } from "@/features/auth/services/auth.service";
-import { completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
+import { beginAnonymousEmailConversion, completeAnonymousEmailConversion, completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, linkAnonymousIdentity as linkAnonymousIdentityService, resendAnonymousEmailConversion, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
 import { clearJourneyCompletionDrafts } from "@/features/journey/services/journey-completion-draft.storage";
 import { queryClient } from "@/lib/query-client";
 import { getPersistedOnboardingCompleted, persistOnboardingCompleted } from "@/lib/storage";
@@ -71,6 +72,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return result;
   }, []);
 
+  const handleLinkAnonymousIdentity = useCallback<AuthContextValue["linkAnonymousIdentity"]>(async provider => {
+    const result = await linkAnonymousIdentityService(provider);
+
+    if (result !== "success") {
+      return result;
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    setSession(data.session);
+    setStatus(getSessionStatus(data.session));
+
+    return result;
+  }, []);
+
   const handleSignOut = useCallback(async () => {
     const userId = session?.user.id;
     await signOut();
@@ -78,6 +98,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (userId) {
       await clearJourneyCompletionDrafts(userId);
     }
+
+    await clearPendingAnonymousEmailConversion();
   }, [session?.user.id]);
 
   useEffect(() => {
@@ -191,9 +213,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
+    beginAnonymousEmailConversion,
+    completeAnonymousEmailConversion,
     completeOnboarding: handleCompleteOnboarding,
     hasCompletedOnboarding,
+    linkAnonymousIdentity: handleLinkAnonymousIdentity,
     resendConfirmationEmail,
+    resendAnonymousEmailConversion,
     session,
     signInWithOAuth: handleSignInWithOAuth,
     signInWithPassword,
@@ -202,7 +228,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     status,
     updateEmail,
     user: session?.user ?? null,
-  }), [handleCompleteOnboarding, handleSignInWithOAuth, handleSignOut, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
+  }), [handleCompleteOnboarding, handleLinkAnonymousIdentity, handleSignInWithOAuth, handleSignOut, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }
