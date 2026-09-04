@@ -54,14 +54,15 @@ export const supabaseJourneyRepository: JourneyRepository = {
   },
 
   async getSnapshot(): Promise<JourneySnapshot> {
-    const [levelsResult, exercisesResult, completionsResult, progressResult] = await Promise.all([
+    const [levelsResult, exercisesResult, completionsResult, progressResult, favoritesResult] = await Promise.all([
       supabase.from("levels").select("*").eq("publication_status", "published").order("number"),
       supabase.from("exercises").select("*").eq("publication_status", "published").not("position", "is", null).order("position"),
-      supabase.from("exercise_completions").select("id,exercise_id,completed_at").order("completed_at"),
+      supabase.from("exercise_completions").select("id,exercise_id,completed_at,advances_journey").order("completed_at"),
       supabase.from("exercise_progress").select("exercise_id,progress_percentage,updated_at").order("updated_at"),
+      supabase.from("user_favorites").select("exercise_id").order("created_at"),
     ]);
 
-    const error = levelsResult.error ?? exercisesResult.error ?? completionsResult.error ?? progressResult.error;
+    const error = levelsResult.error ?? exercisesResult.error ?? completionsResult.error ?? progressResult.error ?? favoritesResult.error;
 
     if (error) {
       throw error;
@@ -79,6 +80,7 @@ export const supabaseJourneyRepository: JourneyRepository = {
       return exercise ? [exercise] : [];
     });
     const completions: JourneyCompletion[] = (completionsResult.data ?? []).map(row => ({
+      advancesJourney: row.advances_journey,
       completedAt: row.completed_at,
       exerciseId: row.exercise_id,
       id: row.id,
@@ -89,6 +91,29 @@ export const supabaseJourneyRepository: JourneyRepository = {
       updatedAt: row.updated_at,
     }));
 
-    return { completions, exercises, progress };
+    const favoriteExerciseIds = (favoritesResult.data ?? []).map(row => row.exercise_id);
+
+    return { completions, exercises, favoriteExerciseIds, progress };
+  },
+
+  async setExerciseFavorite(userId: string, exerciseId: string, isFavorite: boolean): Promise<void> {
+    if (isFavorite) {
+      const result = await supabase.from("user_favorites").upsert(
+        { exercise_id: exerciseId, user_id: userId },
+        { ignoreDuplicates: true, onConflict: "user_id,exercise_id" },
+      );
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      return;
+    }
+
+    const result = await supabase.from("user_favorites").delete().eq("user_id", userId).eq("exercise_id", exerciseId);
+
+    if (result.error) {
+      throw result.error;
+    }
   },
 };

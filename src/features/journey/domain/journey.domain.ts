@@ -32,9 +32,9 @@ export function getNextJourneyExercise(exercises: JourneyExercise[], completions
   return sortJourneyExercises(exercises).find(exercise => !completedExerciseIds.has(exercise.id)) ?? null;
 }
 
-function wasCompletedToday(completions: JourneyCompletion[], now: Date): boolean {
+function wasAdvancedToday(completions: JourneyCompletion[], now: Date): boolean {
   const today = getBusinessDateKey(now);
-  return today !== null && completions.some(completion => getBusinessDateKey(completion.completedAt) === today);
+  return today !== null && completions.some(completion => completion.advancesJourney && getBusinessDateKey(completion.completedAt) === today);
 }
 
 function getExerciseStatus(exerciseId: string, completedExerciseIds: Set<string>, nextExerciseId: string | null, completedToday: boolean): JourneyExerciseState["status"] {
@@ -53,14 +53,16 @@ export function getJourneyState(snapshot: JourneySnapshot, now = new Date()): Jo
   const orderedExercises = sortJourneyExercises(snapshot.exercises);
   const completedExerciseIds = new Set(snapshot.completions.map(completion => completion.exerciseId));
   const nextExerciseId = getNextJourneyExercise(orderedExercises, snapshot.completions)?.id ?? null;
-  const completedToday = wasCompletedToday(snapshot.completions, now);
+  const advancedToday = wasAdvancedToday(snapshot.completions, now);
+  const favoriteExerciseIds = new Set(snapshot.favoriteExerciseIds);
   const exercises: JourneyExerciseState[] = orderedExercises.map(exercise => ({
     ...exercise,
-    status: getExerciseStatus(exercise.id, completedExerciseIds, nextExerciseId, completedToday),
+    isFavorite: favoriteExerciseIds.has(exercise.id),
+    status: getExerciseStatus(exercise.id, completedExerciseIds, nextExerciseId, advancedToday),
   }));
 
   return {
-    completedToday,
+    advancedToday,
     exercises,
     nextExercise: exercises.find(exercise => exercise.id === nextExerciseId) ?? null,
   };
@@ -74,10 +76,10 @@ export function canCompleteJourneyExercise(state: JourneyState, exerciseId: stri
   }
 
   if (exercise.status === "completed") {
-    return { allowed: false, reason: "ALREADY_COMPLETED" };
+    return { allowed: true };
   }
 
-  if (state.completedToday) {
+  if (state.advancedToday) {
     return { allowed: false, reason: "DAILY_LIMIT_REACHED" };
   }
 
