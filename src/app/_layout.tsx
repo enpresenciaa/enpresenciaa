@@ -35,7 +35,6 @@ function AuthNavigator() {
       <Stack.Protected guard={hasSession && (status === "permanent" || hasCompletedOnboarding)}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="billing/return" />
-        <Stack.Screen name="camino/nivel/[levelId]" />
         <Stack.Screen name="exercise/[exerciseId]" />
       </Stack.Protected>
       <Stack.Screen name="+not-found" />

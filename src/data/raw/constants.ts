@@ -1,4 +1,4 @@
-const SF_TO_MATERIAL = {
+const _SF_TO_MATERIAL = {
   // Tab bar icons
   "house": "home-filled",
   "house.fill": "home-filled",

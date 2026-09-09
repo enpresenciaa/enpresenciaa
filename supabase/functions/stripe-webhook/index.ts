@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 import Stripe from "npm:stripe@22.0.0";
 
-import { isBillingSubscriptionStatus, isUuid, unixSecondsToIso } from "../_shared/billing.ts";
+import { isBillingSubscriptionStatus, isUuid, requireStripeTestKey, unixSecondsToIso } from "../_shared/billing.ts";
 import { errorResponse, jsonResponse } from "../_shared/http.ts";
 
 const SUPPORTED_EVENTS = new Set([
@@ -44,7 +44,7 @@ Deno.serve(async request => {
   let event: Stripe.Event;
 
   try {
-    const stripe = new Stripe(requireServerEnv("STRIPE_SECRET_KEY"));
+    const stripe = new Stripe(requireStripeTestKey(requireServerEnv("STRIPE_SECRET_KEY")));
     const rawBody = await request.text();
     event = await stripe.webhooks.constructEventAsync(
       rawBody,
@@ -55,6 +55,11 @@ Deno.serve(async request => {
     );
   } catch {
     return errorResponse("SIGNATURE_INVALID", 400);
+  }
+
+  // Check only after signature verification, before claiming or persisting events.
+  if (event.livemode !== false) {
+    return errorResponse("LIVE_MODE_DISABLED", 400);
   }
 
   const supabaseUrl = requireServerEnv("SUPABASE_URL");
@@ -82,7 +87,7 @@ Deno.serve(async request => {
   }
 
   try {
-    const stripe = new Stripe(requireServerEnv("STRIPE_SECRET_KEY"));
+    const stripe = new Stripe(requireStripeTestKey(requireServerEnv("STRIPE_SECRET_KEY")));
     let subscription: Stripe.Subscription;
     let checkoutAttemptId: string | undefined;
 

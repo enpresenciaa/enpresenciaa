@@ -30,7 +30,7 @@ export default function WelcomeRoute() {
 }
 
 const styles = StyleSheet.create({
-  content: { alignContent:"center", flex: 1, justifyContent: "space-between", marginHorizontal: "auto", maxWidth: 560, padding: 24, paddingBottom: 28, paddingTop: 48, width: "100%" },
+  content: { alignContent: "center", flex: 1, justifyContent: "space-between", marginHorizontal: "auto", maxWidth: 560, padding: 24, paddingBottom: 28, paddingTop: 48, width: "100%" },
   link: { color: colors.text, fontFamily: fonts.body, fontSize: 14, textAlign: "center" },
   linkButton: { minHeight: 48, justifyContent: "center", marginTop: 6 },
   safeArea: { flex: 1 },

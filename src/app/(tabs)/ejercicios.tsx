@@ -1,5 +1,6 @@
-import { JournalScreen } from "@/features/journal/screens/JournalScreen";
+import type { Href } from "expo-router";
+import { Redirect } from "expo-router";
 
-export default function ExercisesRoute() {
-  return <JournalScreen />;
+export default function LegacyExercisesRoute() {
+  return <Redirect href={"/(tabs)/para-ti/bitacora" as Href} />;
 }
