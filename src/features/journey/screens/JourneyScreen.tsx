@@ -4,12 +4,15 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { OnboardingBackground } from "@/components/onboarding/OnboardingBackground";
 import { env } from "@/config/env";
 import { colors, fonts } from "@/config/onboarding-theme";
 import { BillingTestCheckout } from "@/features/billing/components/BillingTestCheckout";
 import { isStripeTestCheckoutVisible } from "@/features/billing/utils/billing.utils";
 import type { JourneyExerciseState, JourneyExerciseStatus } from "@/features/journey/domain/journey.types";
 import { useJourney, useSetExerciseFavorite } from "@/features/journey/hooks/useJourney";
+
+const background = require("../../../../assets/images/Camino.png");
 
 const labels: Record<JourneyExerciseStatus, string> = {
   available: "Disponible",
@@ -59,6 +62,10 @@ export function JourneyScreen({ showStartHeader = false }: { showStartHeader?: b
   const completed = journey.data?.exercises.filter(item => item.status === "completed").length ?? 0;
   const showStripeTestCheckout = isStripeTestCheckoutVisible(__DEV__, env.enableStripeTestCheckout);
 
+  if (journey.isSuccess && journey.data.exercises.length === 0) {
+    return <OnboardingBackground backgroundColor="#364B26" source={background} />;
+  }
+
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.screen}>
       <View style={styles.header}>
@@ -76,10 +83,9 @@ export function JourneyScreen({ showStartHeader = false }: { showStartHeader?: b
       {journey.isError ? <State action={() => void journey.refetch()} icon="cloud-offline-outline" message="No pudimos cargar tu camino. Revisa tu conexión." /> : null}
       {journey.isSuccess ? (
         <FlatList
-          contentContainerStyle={journey.data.exercises.length ? styles.list : styles.empty}
+          contentContainerStyle={styles.list}
           data={journey.data.exercises}
           keyExtractor={item => item.id}
-          ListEmptyComponent={<State icon="leaf-outline" message="Los ejercicios aparecerán aquí cuando se publique el contenido." title="Estamos preparando tu camino" />}
           renderItem={({ item }) => <ExerciseRow exercise={item} />}
           showsVerticalScrollIndicator={false}
         />
@@ -88,11 +94,10 @@ export function JourneyScreen({ showStartHeader = false }: { showStartHeader?: b
   );
 }
 
-function State({ action, icon, message, title }: { action?: () => void; icon: keyof typeof Ionicons.glyphMap; message: string; title?: string }) {
+function State({ action, icon, message }: { action?: () => void; icon: keyof typeof Ionicons.glyphMap; message: string }) {
   return (
     <View style={styles.state}>
       <Ionicons color={colors.primary} name={icon} size={40} />
-      {title ? <Text style={styles.stateTitle}>{title}</Text> : null}
       <Text style={styles.stateText}>{message}</Text>
       {action ? <Pressable accessibilityRole="button" onPress={action} style={styles.retry}><Text style={styles.retryText}>Reintentar</Text></Pressable> : null}
     </View>
@@ -101,7 +106,6 @@ function State({ action, icon, message, title }: { action?: () => void; icon: ke
 
 const styles = StyleSheet.create({
   copy: { flex: 1, marginLeft: 12 },
-  empty: { flexGrow: 1 },
   favorite: { alignItems: "center", height: 52, justifyContent: "center", marginHorizontal: 7, width: 44 },
   future: { opacity: 0.62 },
   header: { paddingBottom: 12, paddingHorizontal: 22, paddingTop: 10 },
@@ -117,7 +121,6 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background, flex: 1 },
   state: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 32 },
   stateText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 320, textAlign: "center" },
-  stateTitle: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 17, marginTop: 14, textAlign: "center" },
   startDescription: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, marginTop: 5, maxWidth: 440 },
   startSection: { marginBottom: 24 },
   startTitle: { color: colors.text, fontFamily: fonts.title, fontSize: 38 },

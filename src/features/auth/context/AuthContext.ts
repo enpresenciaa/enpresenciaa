@@ -9,6 +9,7 @@ export interface AuthContextValue {
   beginAnonymousEmailConversion: (request: AnonymousEmailConversionRequest) => Promise<AnonymousEmailConversionResult>;
   completeAnonymousEmailConversion: (email: string, password: string) => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  ensureAnonymousSession: () => Promise<User>;
   hasCompletedOnboarding: boolean;
   linkAnonymousIdentity: (provider: SocialOAuthProvider) => Promise<OAuthResult>;
   resendConfirmationEmail: (email: string) => Promise<void>;
