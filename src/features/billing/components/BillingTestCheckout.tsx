@@ -4,6 +4,7 @@ import { AppState, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/onboarding/AppButton";
 import { colors, fonts } from "@/config/onboarding-theme";
+import { createUuid } from "@/lib/uuid";
 import { useBillingSubscription, useCreateStripeCheckout, useInvalidateBillingSubscription } from "@/features/billing/hooks/useBilling";
 import type { CheckoutUiStatus } from "@/features/billing/types";
 import { classifyBrowserCompletion, runOnce } from "@/features/billing/utils/billing.utils";
@@ -34,7 +35,7 @@ export function BillingTestCheckout() {
       setUiStatus("opening");
 
       try {
-        const checkoutUrl = await checkout.mutateAsync(crypto.randomUUID());
+        const checkoutUrl = await checkout.mutateAsync(createUuid());
         setUiStatus("browser_open");
         const result = await WebBrowser.openBrowserAsync(checkoutUrl);
         const completion = classifyBrowserCompletion(result.type);

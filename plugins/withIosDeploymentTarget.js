@@ -1,6 +1,6 @@
 const { withDangerousMod } = require("expo/config-plugins");
-const fs = require("fs").promises;
-const path = require("path");
+const fs = require("node:fs").promises;
+const path = require("node:path");
 
 const DEPLOYMENT_TARGET = "17.0";
 const MARKER = "Set iOS 17.0 for all targets (Voltra widget)";
@@ -15,7 +15,9 @@ function withIosDeploymentTarget(config) {
     async (cfg) => {
       const podfilePath = path.join(cfg.modRequest.platformProjectRoot, "Podfile");
       let contents = await fs.readFile(podfilePath, "utf8");
-      if (contents.includes(MARKER)) return cfg;
+      if (contents.includes(MARKER)) {
+        return cfg;
+      }
 
       const patch = `
   # ${MARKER}

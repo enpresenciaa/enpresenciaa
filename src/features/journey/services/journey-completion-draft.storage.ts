@@ -2,13 +2,14 @@ import { z } from "zod";
 
 import type { JourneyCompletionDraft } from "@/features/journey/domain/journey.types";
 import { secureStorage } from "@/lib/auth-storage";
+import { createUuid } from "@/lib/uuid";
 
 const draftSchema = z.object({
   durationSeconds: z.number().int().nonnegative().nullable(),
   emotionalScore: z.number().int().min(1).max(5).nullable(),
   exerciseId: z.string().uuid(),
   idempotencyKey: z.string().uuid(),
-  reflectionText: z.string().trim().min(1).max(5000).nullable(),
+  reflectionText: z.string().trim().min(1).max(150).nullable(),
   updatedAt: z.string().datetime(),
   userId: z.string().uuid(),
 });
@@ -88,7 +89,7 @@ export async function createJourneyCompletionDraft(userId: string, exerciseId: s
     durationSeconds: null,
     emotionalScore: null,
     exerciseId,
-    idempotencyKey: crypto.randomUUID(),
+    idempotencyKey: createUuid(),
     reflectionText: null,
     updatedAt: new Date().toISOString(),
     userId,

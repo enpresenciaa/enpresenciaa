@@ -1,95 +1,56 @@
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useRef } from "react";
 
-import { AppButton } from "@/components/onboarding/AppButton";
-import { BackButton } from "@/components/onboarding/BackButton";
-import { MoodSelector } from "@/components/onboarding/MoodSelector";
-import type { Mood } from "@/components/onboarding/MoodSelector";
-import { colors, fonts } from "@/config/onboarding-theme";
+import { ExerciseFlow } from "@/features/exercise-flow/components/ExerciseFlow";
+import type { ExerciseFlowModel } from "@/features/exercise-flow/components/ExerciseFlow";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { getAuthErrorMessage } from "@/features/auth/services/auth.service";
+import { supabaseJourneyRepository } from "@/features/journey/services/supabase-journey.repository";
+import { createUuid } from "@/lib/uuid";
 
-type FormValues = { mood?: Mood };
+const initialExercise: ExerciseFlowModel = {
+  content: {
+    modality: "video",
+    source: require("../../../assets/videos/video_introduccion.mp4"),
+    title: "Video del ejercicio inicial",
+  },
+  doorLabel: "Puerta de entrada",
+  exerciseLabel: "Ejercicio inicial",
+  guidePhrase: "¿Quién soy hoy?",
+  instructions: "Mira el video completo. Después reconoce cómo te sientes y escribe una breve reflexión sobre este momento.",
+  levelLabel: "Nivel inicial",
+  title: "Reconocer cómo estoy",
+};
 
 export default function InitialExerciseRoute() {
   const router = useRouter();
-  const { completeOnboarding } = useAuth();
-  const submitLockRef = useRef(false);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const player = useVideoPlayer(require("@/assets/videos/video_introduccion.mp4"), videoPlayer => {
-    videoPlayer.loop = false;
-    videoPlayer.muted = true;
-  });
-  const { control, formState: { errors, isSubmitting, isValid }, handleSubmit } = useForm<FormValues>({
-    defaultValues: { mood: undefined },
-    mode: "onChange",
-  });
+  const { completeOnboarding, ensureAnonymousSession } = useAuth();
+  const idempotencyKeyRef = useRef(createUuid());
 
-  const onSubmit = handleSubmit(async () => {
-    if (submitLockRef.current) {
-      return;
+  async function handleComplete(answer: { emotionalScore: number; reflectionText: string }) {
+    const user = await ensureAnonymousSession();
+    const completion = await supabaseJourneyRepository.completeInitialExercise({
+      emotionalScore: answer.emotionalScore,
+      idempotencyKey: idempotencyKeyRef.current,
+      reflectionText: answer.reflectionText,
+    });
+
+    if (completion.userId !== user.id) {
+      throw new Error("INITIAL_COMPLETION_VERIFICATION_FAILED");
     }
 
-    submitLockRef.current = true;
-    setSubmissionError(null);
-
-    try {
-      await completeOnboarding();
-      router.replace("/(tabs)/empezar" as Href);
-    } catch (error) {
-      setSubmissionError(getAuthErrorMessage(error));
-    } finally {
-      submitLockRef.current = false;
-    }
-  });
+    await completeOnboarding();
+    router.replace("/(tabs)/empezar" as Href);
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <BackButton />
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text accessibilityRole="header" style={styles.title}>Ejercicio 1</Text>
-          <Text style={styles.subtitle}>¿Quién soy hoy?</Text>
-        </View>
-        <View style={styles.centerGroup}>
-          <View style={styles.videoFrame}>
-            <VideoView
-              accessibilityLabel="Video del ejercicio 1"
-              contentFit="cover"
-              nativeControls
-              player={player}
-              style={styles.video}
-            />
-          </View>
-          <Text accessibilityRole="header" style={styles.question}>¿Qué tan consiente estás de tus emociones?</Text>
-          <Controller
-            control={control}
-            name="mood"
-            rules={{ required: "Selecciona cómo te sientes" }}
-            render={({ field: { onChange, value } }) => <MoodSelector error={errors.mood?.message} onChange={onChange} value={value} />}
-          />
-        </View>
-        {submissionError ? <Text accessibilityRole="alert" style={styles.error}>{submissionError}</Text> : null}
-        <AppButton disabled={!isValid || isSubmitting} loading={isSubmitting} onPress={onSubmit}>Continuar</AppButton>
-      </View>
-    </SafeAreaView>
+    <ExerciseFlow
+      model={initialExercise}
+      onComplete={handleComplete}
+      onExit={() => router.canGoBack() ? router.back() : router.replace("/onboarding/bienvenida")}
+      variant="onboarding"
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  centerGroup: { flex: 1, justifyContent: "center" },
-  content: { alignSelf: "center", flex: 1, maxWidth: 560, padding: 24, paddingBottom: 28, width: "100%" },
-  error: { color: colors.error, fontFamily: fonts.body, fontSize: 13, marginBottom: 10, textAlign: "center" },
-  header: { marginTop: 54 },
-  question: { color: colors.text, fontFamily: fonts.title, fontSize: 30, lineHeight: 42, marginBottom: 32, textAlign: "center" },
-  safeArea: { backgroundColor: colors.background, flex: 1 },
-  subtitle: { color: colors.text, fontFamily: fonts.title, fontSize: 24, lineHeight: 31, marginTop: 2 },
-  title: { color: colors.text, fontFamily: fonts.title, fontSize: 32, lineHeight: 38 },
-  video: { height: "100%", width: "100%" },
-  videoFrame: { backgroundColor: colors.text, borderColor: colors.primary, borderRadius: 16, borderWidth: 2, height: 180, marginBottom: 24, overflow: "hidden", width: "100%" },
-});
+// TODO(content): reemplazar el video local por contenido inicial publicado cuando exista su contrato editorial.

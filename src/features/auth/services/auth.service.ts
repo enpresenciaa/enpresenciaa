@@ -1,4 +1,5 @@
 import { AuthApiError } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import * as QueryParams from "expo-auth-session/build/QueryParams";
 import * as WebBrowser from "expo-web-browser";
 
@@ -398,34 +399,46 @@ export async function signOut(): Promise<void> {
   }
 }
 
-let onboardingCompletionAttempt: Promise<void> | null = null;
+let anonymousSessionAttempt: Promise<User> | null = null;
 
-async function completeOnboardingOnce(): Promise<void> {
+async function ensureAnonymousSessionOnce(): Promise<User> {
   const { data: currentSession, error: sessionError } = await supabase.auth.getSession();
 
   if (sessionError) {
     throw sessionError;
   }
 
-  if (!currentSession.session) {
-    const { error: anonymousError } = await supabase.auth.signInAnonymously();
-
-    if (anonymousError) {
-      throw anonymousError;
-    }
+  if (currentSession.session) {
+    return currentSession.session.user;
   }
+
+  const { data, error: anonymousError } = await supabase.auth.signInAnonymously();
+
+  if (anonymousError) {
+    throw anonymousError;
+  }
+
+  if (!data.user) {
+    throw new Error("AUTH_SESSION_REQUIRED");
+  }
+
+  return data.user;
 }
 
-export function completeOnboarding(): Promise<void> {
-  if (onboardingCompletionAttempt) {
-    return onboardingCompletionAttempt;
+export function ensureAnonymousSession(): Promise<User> {
+  if (anonymousSessionAttempt) {
+    return anonymousSessionAttempt;
   }
 
-  onboardingCompletionAttempt = completeOnboardingOnce().finally(() => {
-    onboardingCompletionAttempt = null;
+  anonymousSessionAttempt = ensureAnonymousSessionOnce().finally(() => {
+    anonymousSessionAttempt = null;
   });
 
-  return onboardingCompletionAttempt;
+  return anonymousSessionAttempt;
+}
+
+export async function completeOnboarding(): Promise<void> {
+  await ensureAnonymousSession();
 }
 
 export async function updateEmail(email: string): Promise<EmailUpdateResult> {

@@ -9,20 +9,10 @@ interface Props {
 }
 
 export function NotificationButton({ onPress, unreadCount = 0 }: Props) {
-  const content = (
-    <>
+  return (
+    <Pressable accessibilityLabel={`Notificaciones${unreadCount > 0 ? `, ${unreadCount} sin leer` : ""}`} accessibilityRole="button" disabled={!onPress} hitSlop={10} onPress={onPress} style={({ pressed }) => [styles.button, pressed && Boolean(onPress) && styles.pressed]}>
       <Ionicons color={colors.text} name="notifications" size={28} />
       {unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text></View> : null}
-    </>
-  );
-
-  if (!onPress) {
-    return <View accessibilityLabel={`Notificaciones, ${unreadCount} sin leer`} style={styles.button}>{content}</View>;
-  }
-
-  return (
-    <Pressable accessibilityLabel={`Notificaciones${unreadCount > 0 ? `, ${unreadCount} sin leer` : ""}`} accessibilityRole="button" hitSlop={10} onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-      {content}
     </Pressable>
   );
 }

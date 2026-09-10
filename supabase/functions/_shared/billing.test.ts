@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { isBillingSubscriptionStatus, isHttpsUrl, isUuid, unixSecondsToIso } from "./billing";
+import { isBillingSubscriptionStatus, isHttpsUrl, isUuid, requireStripeTestKey, unixSecondsToIso } from "./billing";
 
 describe("billing edge helpers", () => {
   test("accepts only HTTPS checkout URLs", () => {
@@ -22,5 +22,20 @@ describe("billing edge helpers", () => {
   test("maps Stripe timestamps", () => {
     expect(unixSecondsToIso(0)).toBe("1970-01-01T00:00:00.000Z");
     expect(unixSecondsToIso(null)).toBeNull();
+  });
+});
+
+describe("Stripe test mode boundary", () => {
+  test("accepts test secret and restricted keys", () => {
+    for (const kind of ["sk", "rk"]) {
+      const key = `${kind}_test_fixture`;
+      expect(requireStripeTestKey(key)).toBe(key);
+    }
+  });
+
+  test("rejects live, publishable, empty and malformed keys without exposing them", () => {
+    for (const key of ["sk" + "_live_fixture", "rk" + "_live_fixture", "pk" + "_test_fixture", "", "sk_test_", "sk_test_fixture\n", "sk_test_fixture extra"]) {
+      expect(() => requireStripeTestKey(key)).toThrow("STRIPE_TEST_MODE_REQUIRED");
+    }
   });
 });

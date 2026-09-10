@@ -13,7 +13,6 @@ interface EnvConfig {
   API_URL: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const Env: EnvConfig = require("./app-env.js");
 
 export default Env;

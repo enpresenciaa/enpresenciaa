@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 import Stripe from "npm:stripe@22.0.0";
 
-import { isHttpsUrl, isUuid } from "../_shared/billing.ts";
+import { isHttpsUrl, isUuid, requireStripeTestKey } from "../_shared/billing.ts";
 import { corsHeaders, errorResponse, jsonResponse } from "../_shared/http.ts";
 
 type CheckoutRequest = { attemptId?: unknown };
@@ -71,10 +71,10 @@ Deno.serve(async request => {
       return errorResponse("AUTH_INVALID", 401);
     }
 
+    const stripeSecretKey = requireStripeTestKey(requireServerEnv("STRIPE_SECRET_KEY"));
     const admin = createClient(supabaseUrl, getServerKey(), { auth: { persistSession: false } });
     attemptAdmin = admin;
     authenticatedUserId = user.id;
-    const stripeSecretKey = requireServerEnv("STRIPE_SECRET_KEY");
     const priceId = requireServerEnv("STRIPE_TEST_PRICE_ID");
     const successUrl = requireServerEnv("STRIPE_CHECKOUT_SUCCESS_URL");
     const cancelUrl = requireServerEnv("STRIPE_CHECKOUT_CANCEL_URL");

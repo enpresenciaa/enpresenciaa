@@ -1,4 +1,4 @@
-const themes = [
+const _themes = [
   { name: "light", icon: "sun.max.fill", color: "#d4d4d8" },
   { name: "dark", icon: "moon.fill", color: "#a1a1aa" },
   { name: "gold", icon: "star.fill", color: "#eab308" },

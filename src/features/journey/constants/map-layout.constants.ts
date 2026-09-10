@@ -1,6 +1,0 @@
-export const MAP_ASPECT_RATIO = 1983 / 793;
-export const LEVEL_NODE_SIZE = 30;
-export const CURRENT_LEVEL_VIEWPORT_ANCHOR = 0.57;
-export const JOURNEY_MAP_WIDTH_RATIO = 1.4;
-export const CINEMATIC_ENTRY_DURATION = 1150;
-export const CLOUD_REVEAL_DURATION = 560;

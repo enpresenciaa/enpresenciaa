@@ -1,5 +1,6 @@
-import { JourneyScreen } from "@/features/journey/screens/JourneyScreen";
+import type { Href } from "expo-router";
+import { Redirect } from "expo-router";
 
-export default function JourneyRoute() {
-  return <JourneyScreen />;
+export default function LegacyJourneyRoute() {
+  return <Redirect href={"/(tabs)/empezar/camino" as Href} />;
 }

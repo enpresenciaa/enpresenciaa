@@ -32,3 +32,12 @@ export function isUuid(value: unknown): value is string {
 export function unixSecondsToIso(value: number | null): string | null {
   return value === null ? null : new Date(value * 1000).toISOString();
 }
+
+// This billing phase must never make live Stripe API requests.
+export function requireStripeTestKey(value: string): string {
+  if (!/^(?:sk|rk)_test_[A-Za-z0-9]+$/.test(value)) {
+    throw new Error("STRIPE_TEST_MODE_REQUIRED");
+  }
+
+  return value;
+}

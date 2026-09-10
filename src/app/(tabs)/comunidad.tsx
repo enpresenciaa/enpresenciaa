@@ -1,5 +1,5 @@
-import { SectionScreen } from "@/components/layout/SectionScreen";
+import { CommunityScreen } from "@/features/community/screens/CommunityScreen";
 
 export default function CommunityRoute() {
-  return <SectionScreen title="Comunidad">Esta sección se encuentra en definición. No hay publicaciones, citas ni avisos activos todavía.</SectionScreen>;
+  return <CommunityScreen />;
 }

@@ -2,17 +2,40 @@ export const JOURNEY_TIME_ZONE = "America/Mexico_City";
 
 export type JourneyExerciseStatus = "available" | "completed" | "future" | "locked_today";
 export type PublicationStatus = "archived" | "draft" | "published";
+export type ExerciseContentModality = "audio" | "text" | "video";
+
+export type ExerciseContent = {
+  id: string;
+  modality: ExerciseContentModality;
+  source: string | null;
+  text: string | null;
+};
 
 export type JourneyExercise = {
   description: string | null;
   estimatedDurationMinutes: number | null;
   globalPosition: number;
+  guidePhrase: string | null;
   id: string;
+  instructions: string | null;
   levelId: string;
+  levelName: string;
   levelNumber: number;
   positionInLevel: number;
   publicationStatus: PublicationStatus;
   title: string;
+};
+
+export type JourneyExerciseDetail = JourneyExercise & {
+  content: ExerciseContent;
+};
+
+export type InitialExerciseCompletion = {
+  completedAt: string;
+  emotionalScore: number;
+  id: string;
+  reflectionText: string;
+  userId: string;
 };
 
 export type JourneyCompletion = {

@@ -1,3 +1,4 @@
+import type { Href } from "expo-router";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -37,7 +38,7 @@ export default function BillingReturnRoute() {
               "El regreso a la app no confirma el pago. Esperaremos el estado seguro enviado por Stripe."}
         </Text>
         {subscription.isError ? <Text accessibilityRole="alert" style={styles.error}>No pudimos consultar el estado. Puedes volver a Camino e intentarlo más tarde.</Text> : null}
-        <AppButton accessibilityLabel="Volver al Camino" onPress={() => router.replace("/(tabs)/camino")}>Volver a Camino</AppButton>
+        <AppButton accessibilityLabel="Volver al Camino" onPress={() => router.replace("/(tabs)/empezar/camino" as Href)}>Volver a Camino</AppButton>
       </View>
     </SafeAreaView>
   );

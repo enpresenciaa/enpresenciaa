@@ -45,6 +45,12 @@ export type Database = {
         Row: { created_at: string; exercise_id: string; id: string; locale: string; mime_type: string | null; modality: string; publication_status: string; storage_path: string | null; text_content: string | null; updated_at: string };
         Update: { exercise_id?: string; locale?: string; mime_type?: string | null; modality?: string; publication_status?: string; storage_path?: string | null; text_content?: string | null; updated_at?: string };
       };
+      initial_exercise_completions: {
+        Insert: { completed_at?: string; created_at?: string; emotional_score: number; id?: string; idempotency_key: string; reflection_text: string; user_id: string };
+        Relationships: Relationship[];
+        Row: { completed_at: string; created_at: string; emotional_score: number; id: string; idempotency_key: string; reflection_text: string; user_id: string };
+        Update: never;
+      };
       exercise_progress: {
         Insert: { created_at?: string; exercise_id: string; last_activity_at?: string; progress_percentage?: number; updated_at?: string; user_id: string };
         Relationships: Relationship[];
@@ -52,10 +58,10 @@ export type Database = {
         Update: { last_activity_at?: string; progress_percentage?: number; updated_at?: string };
       };
       exercises: {
-        Insert: { content_type?: string | null; created_at?: string; description?: string | null; estimated_duration_minutes?: number | null; id?: string; level_id: string; name: string; position?: number | null; publication_status?: string; updated_at?: string };
+        Insert: { content_type?: string | null; created_at?: string; description?: string | null; estimated_duration_minutes?: number | null; guide_phrase?: string | null; id?: string; instructions?: string | null; level_id: string; name: string; position?: number | null; publication_status?: string; updated_at?: string };
         Relationships: Relationship[];
-        Row: { content_type: string | null; created_at: string; description: string | null; estimated_duration_minutes: number | null; id: string; level_id: string; name: string; position: number | null; publication_status: string; updated_at: string };
-        Update: { content_type?: string | null; description?: string | null; estimated_duration_minutes?: number | null; level_id?: string; name?: string; position?: number | null; publication_status?: string; updated_at?: string };
+        Row: { content_type: string | null; created_at: string; description: string | null; estimated_duration_minutes: number | null; guide_phrase: string | null; id: string; instructions: string | null; level_id: string; name: string; position: number | null; publication_status: string; updated_at: string };
+        Update: { content_type?: string | null; description?: string | null; estimated_duration_minutes?: number | null; guide_phrase?: string | null; instructions?: string | null; level_id?: string; name?: string; position?: number | null; publication_status?: string; updated_at?: string };
       };
       levels: {
         Insert: { created_at?: string; description?: string | null; id?: string; is_premium?: boolean; name: string; number: number; publication_status?: string; updated_at?: string };
@@ -96,6 +102,10 @@ export type Database = {
       complete_exercise: {
         Args: { p_duration_seconds?: number; p_emotional_score?: number; p_exercise_id: string; p_idempotency_key: string; p_reflection_text?: string };
         Returns: Database["public"]["Tables"]["exercise_completions"]["Row"];
+      };
+      complete_initial_exercise: {
+        Args: { p_emotional_score: number; p_idempotency_key: string; p_reflection_text: string };
+        Returns: Database["public"]["Tables"]["initial_exercise_completions"]["Row"];
       };
       sync_stripe_subscription: {
         Args: { p_cancel_at_period_end: boolean; p_canceled_at: string | null; p_current_period_end: string | null; p_current_period_start: string | null; p_ended_at: string | null; p_status: string; p_stripe_event_created_at: number; p_stripe_price_id: string; p_stripe_subscription_id: string; p_user_id: string };

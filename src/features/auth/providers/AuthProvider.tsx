@@ -7,7 +7,7 @@ import type { AuthContextValue, AuthStatus } from "@/features/auth/context/AuthC
 import { AuthContext } from "@/features/auth/context/AuthContext";
 import { clearPendingAnonymousEmailConversion } from "@/features/auth/services/anonymous-email-conversion.storage";
 import type { SocialOAuthProvider } from "@/features/auth/services/auth.service";
-import { beginAnonymousEmailConversion, completeAnonymousEmailConversion, completeOnboarding, createSessionFromUrl, hasOAuthCallbackParams, linkAnonymousIdentity as linkAnonymousIdentityService, resendAnonymousEmailConversion, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
+import { beginAnonymousEmailConversion, completeAnonymousEmailConversion, completeOnboarding, createSessionFromUrl, ensureAnonymousSession as ensureAnonymousSessionService, hasOAuthCallbackParams, linkAnonymousIdentity as linkAnonymousIdentityService, resendAnonymousEmailConversion, resendConfirmationEmail, signInWithOAuth as signInWithOAuthService, signInWithPassword, signOut, signUpWithPassword as signUpWithPasswordService, updateEmail } from "@/features/auth/services/auth.service";
 import { clearJourneyCompletionDrafts } from "@/features/journey/services/journey-completion-draft.storage";
 import { queryClient } from "@/lib/query-client";
 import { getPersistedOnboardingCompleted, persistOnboardingCompleted } from "@/lib/storage";
@@ -32,6 +32,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await completeOnboarding();
     persistOnboardingCompleted();
     setHasCompletedOnboarding(true);
+  }, []);
+
+  const handleEnsureAnonymousSession = useCallback(async () => {
+    const user = await ensureAnonymousSessionService();
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error || !data.session) {
+      throw error ?? new Error("AUTH_SESSION_REQUIRED");
+    }
+
+    setSession(data.session);
+    setStatus(getSessionStatus(data.session));
+    return user;
   }, []);
 
   const handleSignInWithOAuth = useCallback(async (provider: SocialOAuthProvider) => {
@@ -216,6 +229,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     beginAnonymousEmailConversion,
     completeAnonymousEmailConversion,
     completeOnboarding: handleCompleteOnboarding,
+    ensureAnonymousSession: handleEnsureAnonymousSession,
     hasCompletedOnboarding,
     linkAnonymousIdentity: handleLinkAnonymousIdentity,
     resendConfirmationEmail,
@@ -228,7 +242,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     status,
     updateEmail,
     user: session?.user ?? null,
-  }), [handleCompleteOnboarding, handleLinkAnonymousIdentity, handleSignInWithOAuth, handleSignOut, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
+  }), [handleCompleteOnboarding, handleEnsureAnonymousSession, handleLinkAnonymousIdentity, handleSignInWithOAuth, handleSignOut, handleSignUpWithPassword, hasCompletedOnboarding, session, status]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }

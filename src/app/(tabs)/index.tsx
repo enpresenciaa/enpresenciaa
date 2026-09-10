@@ -1,5 +1,6 @@
-import { HomeScreen } from "@/features/home/screens/HomeScreen";
+import type { Href } from "expo-router";
+import { Redirect } from "expo-router";
 
-export default function HomeRoute() {
-  return <HomeScreen />;
+export default function LegacyHomeRoute() {
+  return <Redirect href={"/(tabs)/empezar" as Href} />;
 }
