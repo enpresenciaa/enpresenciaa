@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import { createVideoControlActions, getVideoControlState, getVideoDuration, getVideoSeekTarget } from "./video-controls.ts";
+import {
+  createVideoControlActions,
+  formatVideoTime,
+  getProgressSeekTarget,
+  getVideoControlState,
+  getVideoDuration,
+  getVideoProgressRatio,
+  getVideoSeekTarget,
+} from "./video-controls.ts";
 
 function setup(overrides = {}) {
   const calls = [];
@@ -118,6 +126,40 @@ describe("custom video controls", () => {
     expect(getVideoControlState("idle", true, false)).toEqual({ disabled: false, isLoading: false, showPause: false });
     expect(actions.toggle(true)).toBe(true);
     expect(calls).toEqual(["pause", "replay"]);
+  });
+
+  test("slider position maps to a clamped time within duration", () => {
+    expect(getProgressSeekTarget(50, 200, 60)).toBe(15);
+    expect(getProgressSeekTarget(-20, 200, 60)).toBe(0);
+    expect(getProgressSeekTarget(260, 200, 60)).toBe(60);
+    expect(getProgressSeekTarget(50, 0, 60)).toBeNull();
+    expect(getProgressSeekTarget(50, 200, 0)).toBeNull();
+    expect(getProgressSeekTarget(Number.NaN, 200, 60)).toBeNull();
+  });
+
+  test("progress ratio follows playback and tolerates unknown duration", () => {
+    expect(getVideoProgressRatio(15, 60)).toBe(0.25);
+    expect(getVideoProgressRatio(90, 60)).toBe(1);
+    expect(getVideoProgressRatio(10, 0)).toBe(0);
+    expect(formatVideoTime(75.9)).toBe("1:15");
+    expect(formatVideoTime(Number.NaN)).toBe("0:00");
+  });
+
+  test("slider seek is applied immediately, clamped, and blocked while loading", () => {
+    const { actions, calls, player } = setup();
+    actions.toggle(false);
+    expect(actions.seekTo(45)).toBe(45);
+    expect(player.currentTime).toBe(45);
+    expect(actions.seekTo(120)).toBe(60);
+    expect(calls).toEqual(["play"]);
+
+    const loading = setup({ status: "loading" });
+    expect(loading.actions.seekTo(30)).toBeNull();
+    expect(loading.player.currentTime).toBe(20);
+
+    const unknown = setup({ duration: 0 });
+    expect(unknown.actions.seekTo(30)).toBeNull();
+    expect(unknown.actions.seekTo(30, 60)).toBe(30);
   });
 
   test("reset buffering keeps the play icon, but initial buffering blocks playback", () => {

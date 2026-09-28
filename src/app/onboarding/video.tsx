@@ -13,7 +13,7 @@ const background = require("../../../assets/images/Imág. VIDEO INTRO.jpg");
 
 export default function VideoRoute() {
   const router = useRouter();
-  const player = useVideoPlayer(require("@/assets/videos/video_introduccion.mp4"), videoPlayer => {
+  const player = useVideoPlayer(require("../../../assets/videos/video_introduccion.mp4"), videoPlayer => {
     videoPlayer.loop = false;
     videoPlayer.muted = false;
     videoPlayer.timeUpdateEventInterval = 0.25;
@@ -27,7 +27,7 @@ export default function VideoRoute() {
           <View style={styles.centerGroup}>
             <Text accessibilityRole="header" style={styles.title}>Video de{"\n"}introducción</Text>
             <View style={styles.playerCard}>
-              <CustomVideoPlayer accessibilityLabel="Video genérico de introducción" height={270} player={player} />
+              <CustomVideoPlayer accessibilityLabel="Video genérico de introducción" height={270} player={player} showProgress />
             </View>
           </View>
           <AppButton onPress={() => router.push("/onboarding/ejercicio-inicial")}>Listo</AppButton>

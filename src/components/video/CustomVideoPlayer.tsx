@@ -5,16 +5,18 @@ import { Modal, StyleSheet, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { CustomVideoControls, useVideoControls } from "@/components/video/CustomVideoControls";
+import { VIDEO_PROGRESS_SLIDER_HEIGHT } from "@/components/video/VideoProgressSlider";
 
 type Props = {
   accessibilityLabel: string;
   height: number;
   onComplete?: () => void;
   player: VideoPlayer;
+  showProgress?: boolean;
   title?: string;
 };
 
-export function CustomVideoPlayer({ accessibilityLabel, height, onComplete, player, title = "Título del video" }: Props) {
+export function CustomVideoPlayer({ accessibilityLabel, height, onComplete, player, showProgress = false, title = "Título del video" }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   // This controller stays mounted while the same player moves between views.
   const controls = useVideoControls(player, onComplete);
@@ -36,6 +38,7 @@ export function CustomVideoPlayer({ accessibilityLabel, height, onComplete, play
           controls={controls}
           isFullscreen={fullscreen}
           onToggleFullscreen={() => setIsFullscreen(value => !value)}
+          showProgress={showProgress}
           title={title}
         />
       </>
@@ -44,7 +47,7 @@ export function CustomVideoPlayer({ accessibilityLabel, height, onComplete, play
 
   return (
     <>
-      {isFullscreen ? <View style={{ height: height + 88 }} /> : renderPlayer(false)}
+      {isFullscreen ? <View style={{ height: height + 88 + (showProgress ? VIDEO_PROGRESS_SLIDER_HEIGHT : 0) }} /> : renderPlayer(false)}
       <Modal
         animationType="fade"
         hardwareAccelerated

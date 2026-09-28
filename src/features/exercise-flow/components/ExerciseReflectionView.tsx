@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   error: { color: colors.error, fontFamily: fonts.body, fontSize: 12, lineHeight: 18, marginTop: 10, textAlign: "center" },
   footer: { paddingBottom: 8, paddingTop: 12, width: "100%" },
   formCard: { backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 18, elevation: 5, maxWidth: 520, paddingHorizontal: 18, paddingVertical: 20, shadowColor: "#000000", shadowOffset: { height: 3, width: 0 }, shadowOpacity: 0.15, shadowRadius: 9, width: "100%" },
-  input: { borderBottomColor: "#738468", borderBottomWidth: 1.5, color: colors.text, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, marginTop: 8, minHeight: 72, paddingHorizontal: 2, paddingVertical: 8 },
+  input: { borderBottomColor: "#738468", borderBottomWidth: 1.5, color: colors.text, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, marginTop: 8, paddingHorizontal: 2, paddingVertical: 8 },
   keyboardView: { flex: 1 },
   question: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, lineHeight: 20, textAlign: "left" },
   screen: { flex: 1 },
