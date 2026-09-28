@@ -12,5 +12,10 @@ export const colors = {
 export const fonts = {
   body: "Poppins",
   bodySemiBold: "PoppinsSemiBold",
+  // Libre (OFL), en el estilo del logotipo de Instagram; el logotipo oficial no se distribuye como fuente.
+  instagram: "GrandHotel",
   title: "Alice",
+  // Alice solo tiene peso regular; Lora es un serif afín con negrita e itálica reales.
+  titleBold: "LoraBold",
+  titleItalic: "LoraItalic",
 } as const;
