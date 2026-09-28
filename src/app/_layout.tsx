@@ -1,6 +1,8 @@
 import "../../global.css";
 
 import { Alice_400Regular } from "@expo-google-fonts/alice";
+import { GrandHotel_400Regular } from "@expo-google-fonts/grand-hotel";
+import { Lora_400Regular_Italic, Lora_700Bold } from "@expo-google-fonts/lora";
 import { Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from "@expo-google-fonts/poppins";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
@@ -11,6 +13,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { AuthProvider } from "@/features/auth/providers/AuthProvider";
+import { DeveloperMocksProvider } from "@/features/developer-mocks/providers/DeveloperMocksProvider";
 import { registerSupabaseAutoRefresh } from "@/lib/supabase";
 import { queryClient } from "@/lib/query-client";
 
@@ -45,6 +48,9 @@ function AuthNavigator() {
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Alice: Alice_400Regular,
+    GrandHotel: GrandHotel_400Regular,
+    LoraBold: Lora_700Bold,
+    LoraItalic: Lora_400Regular_Italic,
     Poppins: Poppins_400Regular,
     PoppinsMedium: Poppins_500Medium,
     PoppinsSemiBold: Poppins_600SemiBold,
@@ -59,7 +65,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthNavigator />
+        <DeveloperMocksProvider>
+          <AuthNavigator />
+        </DeveloperMocksProvider>
       </QueryClientProvider>
     </AuthProvider>
   );

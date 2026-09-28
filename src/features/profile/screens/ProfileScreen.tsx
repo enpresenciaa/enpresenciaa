@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -98,6 +99,7 @@ export function ProfileScreen() {
             <ProfileMenuItem icon="lock-closed-outline" label="Privacidad" onPress={() => showComingSoon("Privacidad")} />
             <ProfileMenuItem icon="globe-outline" label="Idioma" onPress={() => showComingSoon("Idioma")} trailingIcon="chevron-down" />
             {!isGuest ? <ProfileMenuItem icon="diamond-outline" label="Tipo de suscripción" onPress={() => router.push("/(tabs)/yo/suscripcion")} /> : null}
+            {__DEV__ ? <ProfileMenuItem icon="flask-outline" label="Laboratorio de mocks" onPress={() => router.push("/(tabs)/yo/mocks" as Href)} /> : null}
             <ProfileMenuItem icon="log-out-outline" label="Cerrar sesión" onPress={() => void handleSignOut()} />
           </View>
 

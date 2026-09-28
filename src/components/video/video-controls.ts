@@ -22,6 +22,28 @@ export function getVideoSeekTarget(currentTime: number, duration: number, offset
   return Math.max(0, Math.min(duration, currentTime + offset));
 }
 
+export function getProgressSeekTarget(position: number, width: number, duration: number): number | null {
+  if (!Number.isFinite(position) || !Number.isFinite(width) || width <= 0 || !Number.isFinite(duration) || duration <= 0) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(1, position / width)) * duration;
+}
+
+export function getVideoProgressRatio(currentTime: number, duration: number): number {
+  if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, currentTime / duration));
+}
+
+export function formatVideoTime(seconds: number): string {
+  const total = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+  const minutes = Math.floor(total / 60);
+  return `${minutes}:${String(total % 60).padStart(2, "0")}`;
+}
+
 export function createVideoControlActions(player: ControlledPlayer, now = Date.now) {
   let lastActionAt = -Infinity;
 
@@ -45,6 +67,16 @@ export function createVideoControlActions(player: ControlledPlayer, now = Date.n
       if (target === null || target === player.currentTime || !canAct()) {
         return null;
       }
+      player.currentTime = target;
+      return target;
+    },
+    // Slider seeks happen once on release, so they skip the tap throttle.
+    seekTo(seconds: number, knownDuration = 0): number | null {
+      const duration = getVideoDuration(player.duration, knownDuration);
+      if (!Number.isFinite(seconds) || duration <= 0 || getVideoControlState(player.status, false, player.playing).disabled) {
+        return null;
+      }
+      const target = Math.max(0, Math.min(duration, seconds));
       player.currentTime = target;
       return target;
     },

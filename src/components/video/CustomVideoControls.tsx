@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { createVideoControlActions, getVideoControlState, getVideoDuration } from "@/components/video/video-controls";
+import { VideoProgressSlider } from "@/components/video/VideoProgressSlider";
 import { colors, fonts } from "@/config/onboarding-theme";
 
 export function useVideoControls(player: VideoPlayer, onEnded?: () => void) {
@@ -98,6 +99,24 @@ export function useVideoControls(player: VideoPlayer, onEnded?: () => void) {
     });
   }
 
+  function seekTo(seconds: number) {
+    if (playbackState.disabled) {
+      return;
+    }
+    setActionFailed(false);
+    try {
+      const target = actions.seekTo(seconds, availableDuration);
+      if (target === null) {
+        return;
+      }
+      setCurrentTime(target);
+      hasEndedRef.current = false;
+      setHasEnded(false);
+    } catch {
+      setActionFailed(true);
+    }
+  }
+
   const rewindDisabled = disabled || !canSeek || currentTime <= 0;
   const forwardDisabled = disabled || !canSeek || currentTime >= availableDuration;
 
@@ -112,7 +131,22 @@ export function useVideoControls(player: VideoPlayer, onEnded?: () => void) {
     });
   }
 
-  return { actionFailed, disabled, forwardDisabled, isActing, isLoading: playbackState.isLoading, rewindDisabled, seek, showPause: playbackState.showPause, status, toggle };
+  return {
+    actionFailed,
+    currentTime,
+    disabled,
+    duration: availableDuration,
+    forwardDisabled,
+    isActing,
+    isLoading: playbackState.isLoading,
+    progressDisabled: playbackState.disabled || !canSeek,
+    rewindDisabled,
+    seek,
+    seekTo,
+    showPause: playbackState.showPause,
+    status,
+    toggle,
+  };
 }
 
 const ICON_SIZE = 24;
@@ -122,6 +156,7 @@ type Props = {
   isFullscreen?: boolean;
   mediaLabel?: "audio" | "video";
   onToggleFullscreen?: () => void;
+  showProgress?: boolean;
   title?: string;
 };
 
@@ -130,6 +165,7 @@ export function CustomVideoControls({
   isFullscreen = false,
   mediaLabel = "video",
   onToggleFullscreen,
+  showProgress = false,
   title = "Título del video",
 }: Props) {
   const { actionFailed, disabled, forwardDisabled, isActing, isLoading, rewindDisabled, seek, showPause, status, toggle } = controls;
@@ -137,6 +173,15 @@ export function CustomVideoControls({
   return (
     <View style={styles.container}>
       {title ? <Text numberOfLines={1} style={styles.title}>{title}</Text> : null}
+      {showProgress ? (
+        <VideoProgressSlider
+          accessibilityLabel={`Progreso del ${mediaLabel}`}
+          currentTime={controls.currentTime}
+          disabled={controls.progressDisabled}
+          duration={controls.duration}
+          onSeek={controls.seekTo}
+        />
+      ) : null}
       <View style={styles.controlsRow}>
         <View style={styles.centerGroup}>
           <Pressable

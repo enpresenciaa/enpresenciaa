@@ -31,8 +31,42 @@ export async function getJournalPage(params: JournalQueryParams): Promise<Journa
   }
 
   const entries = data.map(mapJournalEntry);
+  const completionIds = entries.flatMap((entry) => {
+    const match = /^completion:(.+)$/.exec(entry.id);
+    return match ? [match[1]] : [];
+  });
+  const reflectionByCompletion = new Map<string, string>();
+  const exerciseByCompletion = new Map<string, string>();
+
+  if (completionIds.length > 0) {
+    // The view has no exercise_id, so completions resolve it from their own RLS-scoped rows.
+    const [reflectionResult, completionResult] = await Promise.all([
+      supabase.from("completion_reflections").select("completion_id,reflection_text").in("completion_id", completionIds),
+      supabase.from("exercise_completions").select("id,exercise_id").in("id", completionIds),
+    ]);
+
+    if (reflectionResult.error) {
+      throw reflectionResult.error;
+    }
+    if (completionResult.error) {
+      throw completionResult.error;
+    }
+
+    for (const reflection of reflectionResult.data) {
+      reflectionByCompletion.set(reflection.completion_id, reflection.reflection_text);
+    }
+    for (const completion of completionResult.data) {
+      exerciseByCompletion.set(completion.id, completion.exercise_id);
+    }
+  }
+
   return {
-    entries,
+    entries: entries.map((entry) => {
+      const match = /^completion:(.+)$/.exec(entry.id);
+      return match ?
+          { ...entry, exerciseId: exerciseByCompletion.get(match[1]) ?? null, reflectionText: reflectionByCompletion.get(match[1]) ?? null } :
+        entry;
+    }),
     nextOffset: entries.length === params.limit ? from + params.limit : null,
   };
 }

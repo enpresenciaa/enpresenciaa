@@ -1,4 +1,4 @@
-import type { JournalEntry, JournalFilter } from "@/features/journal/types";
+import type { JournalEntry, JournalFilter, JournalListFilter } from "@/features/journal/types";
 import type { JournalEntryRow } from "@/types/database";
 
 export const JOURNAL_TIME_ZONE = "America/Mexico_City";
@@ -13,6 +13,11 @@ function required<T>(value: T | null, field: string): T {
   return value;
 }
 
+// journal_entries exposes no exercise_id; progress rows encode it in entry_id.
+export function getProgressEntryExerciseId(entryId: string): string | null {
+  return /^progress:(.+)$/.exec(entryId)?.[1] ?? null;
+}
+
 export function mapJournalEntry(row: JournalEntryRow): JournalEntry {
   const progressPercentage = required(row.progress_percentage, "progress_percentage");
 
@@ -22,10 +27,12 @@ export function mapJournalEntry(row: JournalEntryRow): JournalEntry {
     contentType: row.content_type,
     durationSeconds: row.duration_seconds,
     emotionalScore: row.emotional_score,
+    exerciseId: getProgressEntryExerciseId(required(row.entry_id, "entry_id")),
     exerciseName: required(row.exercise_name, "exercise_name"),
     id: required(row.entry_id, "entry_id"),
     levelName: required(row.level_name, "level_name"),
     progressPercentage,
+    reflectionText: null,
     repetitionNumber: row.repetition_number,
     status: progressPercentage === 100 ? "completed" : "in_progress",
   };
@@ -67,7 +74,7 @@ export function formatDuration(totalSeconds: number): string {
   return minutes > 0 ? `${minutes} min ${seconds > 0 ? `${seconds} s` : ""}`.trim() : `${seconds} s`;
 }
 
-export function getJournalPeriodStart(filter: JournalFilter, now = new Date()): string | null {
+export function getJournalPeriodStart(filter: JournalListFilter, now = new Date()): string | null {
   if (filter === "all") {
     return null;
   }
@@ -95,7 +102,14 @@ export function matchesJournalEntry(entry: JournalEntry, search: string): boolea
   return normalized.length === 0 || `${entry.exerciseName} ${entry.levelName}`.toLocaleLowerCase("es-MX").includes(normalized);
 }
 
-export function isEntryWithinFilter(entry: JournalEntry, filter: JournalFilter, now = new Date()): boolean {
+// Favourites come from the Camino state, filtered by the same search rule as entries.
+export function filterFavoriteExercises<T extends { isFavorite: boolean; levelName: string; title: string }>(exercises: readonly T[], search: string): T[] {
+  const normalized = normalizeJournalSearch(search).toLocaleLowerCase("es-MX");
+  return exercises.filter(exercise =>
+    exercise.isFavorite && (normalized.length === 0 || `${exercise.title} ${exercise.levelName}`.toLocaleLowerCase("es-MX").includes(normalized)));
+}
+
+export function isEntryWithinFilter(entry: JournalEntry, filter: JournalListFilter, now = new Date()): boolean {
   const start = getJournalPeriodStart(filter, now);
   return start === null || new Date(entry.activityAt).getTime() >= new Date(start).getTime();
 }

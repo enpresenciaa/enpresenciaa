@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.112.3";
 import Stripe from "npm:stripe@22.0.0";
 
-import { isHttpsUrl, isUuid, requireStripeTestKey } from "../_shared/billing.ts";
+import { createCheckoutReturnUrl, isHttpsUrl, isUuid, requireStripeTestKey } from "../_shared/billing.ts";
 import { corsHeaders, errorResponse, jsonResponse } from "../_shared/http.ts";
 
 type CheckoutRequest = { attemptId?: unknown };
@@ -71,15 +71,19 @@ Deno.serve(async request => {
       return errorResponse("AUTH_INVALID", 401);
     }
 
+    if (user.is_anonymous) {
+      return errorResponse("PERMANENT_ACCOUNT_REQUIRED", 403);
+    }
+
     const stripeSecretKey = requireStripeTestKey(requireServerEnv("STRIPE_SECRET_KEY"));
     const admin = createClient(supabaseUrl, getServerKey(), { auth: { persistSession: false } });
     attemptAdmin = admin;
     authenticatedUserId = user.id;
     const priceId = requireServerEnv("STRIPE_TEST_PRICE_ID");
-    const successUrl = requireServerEnv("STRIPE_CHECKOUT_SUCCESS_URL");
-    const cancelUrl = requireServerEnv("STRIPE_CHECKOUT_CANCEL_URL");
+    const successUrl = createCheckoutReturnUrl(supabaseUrl, "success");
+    const cancelUrl = createCheckoutReturnUrl(supabaseUrl, "cancelled");
 
-    if (!priceId.startsWith("price_") || !isHttpsUrl(successUrl) || !isHttpsUrl(cancelUrl)) {
+    if (!priceId.startsWith("price_")) {
       throw new Error("INVALID_SERVER_CONFIGURATION");
     }
 
@@ -142,6 +146,7 @@ Deno.serve(async request => {
 
     if (!customerId) {
       const customer = await stripe.customers.create({
+        email: user.email,
         metadata: { supabase_user_id: user.id },
       }, { idempotencyKey: `billing-customer:${user.id}` });
       customerId = customer.id;

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  filterFavoriteExercises,
   getJournalQueryKey,
   getJournalListState,
   getJournalPeriodStart,
@@ -30,6 +31,25 @@ describe("journal mapping", () => {
 
   test("maps 100 percent as Realizado", () => {
     expect(mapJournalEntry({ ...row, completed_at: row.activity_at, progress_percentage: 100 }).status).toBe("completed");
+  });
+
+  test("resolves the exercise from progress rows and leaves completions to the service", () => {
+    expect(mapJournalEntry(row).exerciseId).toBe("exercise-1");
+    expect(mapJournalEntry({ ...row, entry_id: "completion:completion-9", progress_percentage: 100 }).exerciseId).toBeNull();
+  });
+});
+
+describe("journal favourites", () => {
+  const exercises = [
+    { id: "a", isFavorite: true, levelName: "Presencia", title: "Respirar 1" },
+    { id: "b", isFavorite: false, levelName: "Presencia", title: "Observar 2" },
+    { id: "c", isFavorite: true, levelName: "Aceptación", title: "Soltar 3" },
+  ];
+
+  test("keeps only favourites and applies the shared search rule", () => {
+    expect(filterFavoriteExercises(exercises, "").map(item => item.id)).toEqual(["a", "c"]);
+    expect(filterFavoriteExercises(exercises, "  ACEPTACIÓN ").map(item => item.id)).toEqual(["c"]);
+    expect(filterFavoriteExercises(exercises, "observar")).toEqual([]);
   });
 });
 

@@ -6,6 +6,8 @@
       "name": "subscribed",
       "dependencies": {
         "@expo-google-fonts/alice": "^0.4.1",
+        "@expo-google-fonts/grand-hotel": "^0.4.1",
+        "@expo-google-fonts/lora": "^0.4.2",
         "@expo-google-fonts/poppins": "^0.4.1",
         "@expo/vector-icons": "^15.0.2",
         "@react-native-community/datetimepicker": "8.6.0",
@@ -315,6 +317,10 @@
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.6.0", "", { "dependencies": { "@eslint/core": "^1.1.0", "levn": "^0.4.1" } }, "sha512-bIZEUzOI1jkhviX2cp5vNyXQc6olzb2ohewQubuYlMXZ2Q/XjBO0x0XhGPvc9fjSIiUN0vw+0hq53BJ4eQSJKQ=="],
 
     "@expo-google-fonts/alice": ["@expo-google-fonts/alice@0.4.1", "", {}, "sha512-ZzIFC1YjBJg6Un4AdLU3ADxOcDOKwlBoMP0eXvpkKHEw/kxmZ2J2TiGSVeEkmJOv21MtsguTwGL/lLKs1lrGAQ=="],
+
+    "@expo-google-fonts/grand-hotel": ["@expo-google-fonts/grand-hotel@0.4.1", "", {}, "sha512-koj/WRMw0kbr3xQajd9WWY7jI8Q3MAN+m+EfD5wyiN+r36AohrS+Zg6WuvjL9J58bir01G4ifbPHPgO+69iNZg=="],
+
+    "@expo-google-fonts/lora": ["@expo-google-fonts/lora@0.4.2", "", {}, "sha512-Bnofh2mIOUKp4KUS48VjaBgug4lQOcw/ftU0NFv5OPtiutL422//G1v63xDZEMUEL6ft4fi5q94/uKcpDjbPag=="],
 
     "@expo-google-fonts/material-symbols": ["@expo-google-fonts/material-symbols@0.4.22", "", {}, "sha512-Kgn/eYeb5s/pxVkRWQLgZOdaC6SpOofUVc7mtadUQc1OwEy9meDupWCvfWE7+Y8Rh9kFpQe9UxJNvmfmV4pqHA=="],
 

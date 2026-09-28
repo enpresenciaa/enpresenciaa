@@ -1,4 +1,5 @@
-export type JournalFilter = "all" | "week" | "month";
+export type JournalListFilter = "all" | "week" | "month";
+export type JournalFilter = JournalListFilter | "calendar" | "favorites";
 
 export type JournalEntry = {
   activityAt: string;
@@ -6,10 +7,13 @@ export type JournalEntry = {
   contentType: string | null;
   durationSeconds: number | null;
   emotionalScore: number | null;
+  /** Null only when a completion's exercise could not be resolved. */
+  exerciseId: string | null;
   exerciseName: string;
   id: string;
   levelName: string;
   progressPercentage: number;
+  reflectionText: string | null;
   repetitionNumber: number | null;
   status: "completed" | "in_progress";
 };
@@ -20,7 +24,7 @@ export type JournalPage = {
 };
 
 export type JournalQueryParams = {
-  filter: JournalFilter;
+  filter: JournalListFilter;
   limit: number;
   offset: number;
   search: string;
