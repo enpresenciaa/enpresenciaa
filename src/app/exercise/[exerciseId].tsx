@@ -8,6 +8,8 @@ import { colors, fonts } from "@/config/onboarding-theme";
 import { ExerciseFlow } from "@/features/exercise-flow/components/ExerciseFlow";
 import type { ExerciseFlowContent, ExerciseFlowModel } from "@/features/exercise-flow/components/ExerciseFlow";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { GuestTrialGate } from "@/features/guest-trial/components/GuestTrialGate";
+import { useGuestTrial } from "@/features/guest-trial/hooks/useGuestTrial";
 import { canCompleteJourneyExercise } from "@/features/journey/domain/journey.domain";
 import { useCompleteJourneyExercise, useExerciseDetail, useJourney } from "@/features/journey/hooks/useJourney";
 import { createJourneyCompletionDraft, setJourneyCompletionDraft } from "@/features/journey/services/journey-completion-draft.storage";
@@ -36,8 +38,21 @@ export default function ExerciseDetailRoute() {
   const journey = useJourney();
   const detail = useExerciseDetail(exerciseId);
   const completion = useCompleteJourneyExercise();
+  const guestTrial = useGuestTrial();
   const exercise = journey.data?.exercises.find(item => item.id === exerciseId);
   const eligibility = journey.data && exerciseId ? canCompleteJourneyExercise(journey.data, exerciseId) : null;
+
+  // Client-side gate only; complete_exercise rejects expired guests on the server regardless.
+  if (guestTrial.data?.isExpired) {
+    return (
+      <SafeAreaView style={styles.stateScreen}>
+        <Pressable accessibilityLabel="Regresar" accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
+          <Ionicons color={colors.primary} name="arrow-back" size={28} />
+        </Pressable>
+        <GuestTrialGate variant="screen" />
+      </SafeAreaView>
+    );
+  }
 
   if (journey.isPending || detail.isPending) {
     return <SafeAreaView style={styles.stateScreen}><View style={styles.state}><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.message}>Preparando tu ejercicio…</Text></View></SafeAreaView>;

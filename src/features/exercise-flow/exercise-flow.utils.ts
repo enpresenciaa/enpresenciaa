@@ -24,6 +24,9 @@ export function getEmotionalScore(mood: Mood): number {
 export function getExerciseFlowErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
 
+  if (message.includes("GUEST_TRIAL_EXPIRED")) {
+    return "Tu periodo de prueba terminó. Crea tu cuenta para seguir avanzando; tu reflexión sigue aquí.";
+  }
   if (message.includes("DAILY_ADVANCE_LIMIT_REACHED")) {
     return "Ya completaste tu ejercicio de Camino de hoy. Podrás avanzar de nuevo mañana.";
   }

@@ -107,6 +107,10 @@ export type Database = {
         Args: { p_emotional_score: number; p_idempotency_key: string; p_reflection_text: string };
         Returns: Database["public"]["Tables"]["initial_exercise_completions"]["Row"];
       };
+      get_guest_trial: {
+        Args: Record<string, never>;
+        Returns: { advances_limit: number; advances_used: number; ends_at: string | null; is_expired: boolean; is_guest: boolean; started_at: string | null }[];
+      };
       sync_stripe_subscription: {
         Args: { p_cancel_at_period_end: boolean; p_canceled_at: string | null; p_current_period_end: string | null; p_current_period_start: string | null; p_ended_at: string | null; p_status: string; p_stripe_event_created_at: number; p_stripe_price_id: string; p_stripe_subscription_id: string; p_user_id: string };
         Returns: boolean;
