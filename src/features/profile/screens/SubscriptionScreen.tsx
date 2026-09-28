@@ -36,9 +36,9 @@ export function SubscriptionScreen() {
   const showStripeTestCheckout = authStatus === "permanent" && isStripeTestCheckoutVisible(__DEV__, env.enableStripeTestCheckout);
   const plan = billing ? "Plan En Presenciaa" : "Sin suscripción";
   const status = billing ? `Estado: ${getBillingSubscriptionStatusLabel(billing.status)}` : "No hay una suscripción registrada";
-  const periodEnd = billing
-    ? `${billing.cancel_at_period_end ? "Termina" : "Próxima renovación"}: ${formatBillingPeriodEnd(billing.current_period_end)}`
-    : "Activa el pago de prueba para validar la integración";
+  const periodEnd = billing ?
+    `${billing.cancel_at_period_end ? "Termina" : "Próxima renovación"}: ${formatBillingPeriodEnd(billing.current_period_end)}` :
+    "Activa el pago de prueba para validar la integración";
 
   return (
     <View style={styles.screen}>
