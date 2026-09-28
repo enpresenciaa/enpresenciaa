@@ -1,38 +1,96 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts } from "@/config/onboarding-theme";
+import { moods } from "@/components/onboarding/MoodSelector";
+import { getEmotionalScore } from "@/features/exercise-flow/exercise-flow.utils";
+import type { JournalCalendarEntry } from "@/features/journal/services/journal-calendar.service";
+import { OpenExerciseButton } from "@/features/journal/components/OpenExerciseButton";
 import type { JournalEntry } from "@/features/journal/types";
-import { formatDuration, formatJournalDate } from "@/features/journal/utils/journal.utils";
+import { formatJournalDate } from "@/features/journal/utils/journal.utils";
 
-type JournalEntryCardProps = {
-  entry: JournalEntry;
+type JournalEntryCardProps = ({ entry: JournalEntry; variant?: "history" } | { entry: JournalCalendarEntry; variant: "calendar" }) & {
+  /** Opens the entry's exercise; the button is hidden when omitted. */
+  onOpenExercise?: (exerciseId: string) => void;
 };
 
-type DetailRowProps = {
-  label: string;
-  value: string;
-};
-
-function DetailRow({ label, value }: DetailRowProps) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  );
+function formatContentType(value: string | null): string {
+  switch (value?.toLocaleLowerCase("es-MX")) {
+    case "audio":
+      return "Audio";
+    case "text":
+      return "Texto";
+    case "video":
+      return "Video";
+    default:
+      if (!value) {
+        return "Sin tipo";
+      }
+      return `${value.charAt(0).toLocaleUpperCase("es-MX")}${value.slice(1).toLocaleLowerCase("es-MX")}`;
+  }
 }
 
-export function JournalEntryCard({ entry }: JournalEntryCardProps) {
+export function JournalEntryCard(props: JournalEntryCardProps) {
+  const { entry, onOpenExercise } = props;
+  const exerciseId = entry.exerciseId;
+  const openButton = onOpenExercise && exerciseId ?
+      <OpenExerciseButton exerciseName={entry.exerciseName} onPress={() => onOpenExercise(exerciseId)} /> :
+    null;
   const [expanded, setExpanded] = useState(false);
   const statusLabel = entry.status === "completed" ? "Realizado" : "En progreso";
+
+  if (props.variant === "calendar") {
+    const completion = props.entry;
+    const mood = moods.find(item => getEmotionalScore(item.value) === completion.emotionalScore);
+    const modality = completion.contentType === "audio" ? "Audio" : completion.contentType === "video" ? "Video" : completion.contentType === "text" ? "Texto" : "Sin modalidad registrada";
+    return (
+      <View style={styles.completionCard}>
+        <View style={styles.summaryBlock}>
+          <View style={styles.completionLevelRow}>
+            <Text accessibilityRole="header" style={styles.completionLevel}>{`Nivel ${completion.levelNumber} · ${completion.levelName}`}</Text>
+            <Image accessible={false} contentFit="contain" source={require("../../../../assets/images/CUEVA CAMINO1.png")} style={styles.completionLevelIcon} />
+          </View>
+          <View style={styles.exerciseRow}>
+            <Text style={styles.completionTitle}>{completion.exerciseName}</Text>
+            <Text style={styles.modality}>{modality}</Text>
+          </View>
+          <View style={styles.statusDateRow}>
+            <Text style={styles.statusLabel}>Realizado</Text>
+            <View accessible={false} style={styles.statusRule} />
+            <Text style={styles.completionDate}>{formatJournalDate(completion.completedAt)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.detailBlock}>
+          <Text style={styles.prompt}>1. ¿Cómo te sentiste después de realizar el ejercicio?</Text>
+          <View style={styles.moodRow}>
+            {mood ? <MaterialCommunityIcons accessible={false} color={mood.color} name={mood.icon} size={28} /> : null}
+            <Text style={[styles.moodLabel, { color: mood?.color ?? colors.textMuted }]}>{mood?.label || "Sin emoción registrada"}</Text>
+          </View>
+        </View>
+
+        <View style={styles.detailBlock}>
+          <Text style={styles.prompt}>2. ¿Hay alguna reflexión o experiencia que quisieras registrar del ejercicio?</Text>
+          <Text style={styles.reflectionText}>{completion.reflectionText?.trim() || "Sin reflexión registrada"}</Text>
+          <View accessible={false} style={styles.reflectionRule} />
+        </View>
+        {openButton}
+      </View>
+    );
+  }
+
+  const contentTypeLabel = formatContentType(entry.contentType);
+  const historyMood = moods.find(item => getEmotionalScore(item.value) === entry.emotionalScore);
 
   return (
     <View style={styles.card}>
       <Pressable
         accessibilityHint="Muestra u oculta los detalles del ejercicio"
-        accessibilityLabel={`${entry.exerciseName}, ${statusLabel}, ${entry.progressPercentage}%`}
+        accessibilityLabel={`${entry.levelName}, ${contentTypeLabel}, ${entry.exerciseName}, ${statusLabel} el ${formatJournalDate(entry.activityAt)}, ${entry.progressPercentage}%`}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         hitSlop={6}
@@ -41,18 +99,15 @@ export function JournalEntryCard({ entry }: JournalEntryCardProps) {
       >
         <View style={styles.headingRow}>
           <View style={styles.headingText}>
-            <Text numberOfLines={1} style={styles.levelName}>{entry.levelName}</Text>
+            <View style={styles.levelRow}>
+              <Text numberOfLines={1} style={styles.levelName}>{entry.levelName}</Text>
+              <Image accessible={false} contentFit="contain" source={require("../../../../assets/images/CUEVA CAMINO1.png")} style={styles.levelIcon} />
+              <Text numberOfLines={1} style={styles.contentType}>{contentTypeLabel}</Text>
+            </View>
             <Text style={styles.exerciseName}>{entry.exerciseName}</Text>
+            <Text style={styles.historyStatus}>{`${statusLabel} — ${formatJournalDate(entry.activityAt)}`}</Text>
           </View>
           <Ionicons color={colors.primary} name={expanded ? "chevron-up" : "chevron-down"} size={23} />
-        </View>
-
-        <View style={styles.metaRow}>
-          <View style={styles.statusRow}>
-            <Ionicons color={colors.primary} name={entry.status === "completed" ? "checkmark-circle" : "time-outline"} size={17} />
-            <Text style={styles.status}>{statusLabel}</Text>
-          </View>
-          <Text style={styles.date}>{formatJournalDate(entry.activityAt)}</Text>
         </View>
 
         <View
@@ -68,11 +123,14 @@ export function JournalEntryCard({ entry }: JournalEntryCardProps) {
 
       {expanded ? (
         <View style={styles.details}>
-          <DetailRow label={entry.completedAt ? "Finalizado" : "Última actividad"} value={formatJournalDate(entry.activityAt, true)} />
-          {entry.durationSeconds !== null ? <DetailRow label="Duración" value={formatDuration(entry.durationSeconds)} /> : null}
-          {entry.contentType ? <DetailRow label="Contenido" value={entry.contentType} /> : null}
-          {entry.repetitionNumber !== null ? <DetailRow label="Repetición" value={`${entry.repetitionNumber}`} /> : null}
-          {entry.emotionalScore !== null ? <DetailRow label="Puntuación emocional" value={`${entry.emotionalScore}/5`} /> : null}
+          <Text style={styles.expandedQuestion}>1. ¿Cómo te sentiste después de realizar el ejercicio?</Text>
+          <View style={styles.expandedMoodRow}>
+            {historyMood ? <MaterialCommunityIcons accessible={false} color={historyMood.color} name={historyMood.icon} size={30} /> : null}
+            <Text style={[styles.expandedMoodLabel, { color: historyMood?.color ?? colors.textMuted }]}>{historyMood?.label ?? "Sin sentimiento registrado"}</Text>
+          </View>
+          <Text style={[styles.expandedQuestion, styles.reflectionQuestion]}>2. ¿Hay alguna reflexión o experiencia que quisieras registrar del ejercicio?</Text>
+          <Text style={styles.expandedReflection}>{entry.reflectionText?.trim() || "Sin reflexión registrada"}</Text>
+          {openButton}
         </View>
       ) : null}
     </View>
@@ -82,20 +140,41 @@ export function JournalEntryCard({ entry }: JournalEntryCardProps) {
 const styles = StyleSheet.create({
   card: { borderBottomColor: "#D9DED5", borderBottomWidth: 1, paddingVertical: 17 },
   cardButton: { minHeight: 120 },
-  date: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  detailLabel: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
-  detailRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
-  detailValue: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 12, marginLeft: 16, textAlign: "right" },
-  details: { backgroundColor: "#F5F3E9", borderRadius: 12, marginTop: 10, paddingHorizontal: 13, paddingVertical: 10 },
-  exerciseName: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 16, lineHeight: 22 },
+  completionCard: { paddingBottom: 4 },
+  completionDate: { color: colors.primary, fontFamily: fonts.bodySemiBold, fontSize: 13 },
+  completionLevel: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 22, lineHeight: 29, textAlign: "center" },
+  completionLevelIcon: { height: 25, width: 32 },
+  completionLevelRow: { alignItems: "center", flexDirection: "row", gap: 7, justifyContent: "center", paddingHorizontal: 38 },
+  completionTitle: { color: colors.text, flexShrink: 1, fontFamily: fonts.title, fontSize: 17 },
+  contentType: { color: colors.textMuted, flexShrink: 1, fontFamily: fonts.title, fontSize: 13, fontStyle: "italic" },
+  detailBlock: { marginTop: 20 },
+  details: { paddingBottom: 18, paddingHorizontal: 24, paddingTop: 16 },
+  divider: { backgroundColor: colors.primary, height: StyleSheet.hairlineWidth, marginTop: 16, width: "100%" },
+  exerciseRow: { alignItems: "baseline", flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  exerciseName: { color: colors.text, fontFamily: fonts.body, fontSize: 16, lineHeight: 22, marginTop: 4 },
+  expandedMoodLabel: { fontFamily: fonts.bodySemiBold, fontSize: 15 },
+  expandedMoodRow: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 10 },
+  expandedQuestion: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, lineHeight: 19 },
+  expandedReflection: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 22, marginTop: 10 },
   headingRow: { alignItems: "center", flexDirection: "row", gap: 12 },
   headingText: { flex: 1 },
-  levelName: { color: colors.primary, fontFamily: fonts.body, fontSize: 12, marginBottom: 2 },
-  metaRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
+  historyStatus: { color: colors.primary, fontFamily: fonts.bodySemiBold, fontSize: 13, lineHeight: 20, marginTop: 4 },
+  levelIcon: { height: 22, width: 28 },
+  levelName: { color: colors.text, flexShrink: 1, fontFamily: fonts.bodySemiBold, fontSize: 14 },
+  levelRow: { alignItems: "center", flexDirection: "row", gap: 6 },
+  modality: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 13, fontStyle: "italic" },
+  moodLabel: { fontFamily: fonts.bodySemiBold, fontSize: 15 },
+  moodRow: { alignItems: "center", flexDirection: "row", gap: 8, justifyContent: "center", marginTop: 10 },
   pressed: { opacity: 0.68 },
+  prompt: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 14, lineHeight: 19 },
   progressFill: { backgroundColor: colors.primary, borderRadius: 4, height: "100%" },
   progressText: { alignSelf: "flex-end", color: colors.textMuted, fontFamily: fonts.bodySemiBold, fontSize: 11, marginTop: 4 },
   progressTrack: { backgroundColor: "#DCE2D7", borderRadius: 4, height: 7, marginTop: 10, overflow: "hidden" },
-  status: { color: colors.text, fontFamily: fonts.body, fontSize: 12 },
-  statusRow: { alignItems: "center", flexDirection: "row", gap: 5 },
+  reflectionRule: { backgroundColor: colors.border, height: 2, marginTop: 8, width: "82%" },
+  reflectionText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20, marginTop: 10 },
+  reflectionQuestion: { marginTop: 24 },
+  statusDateRow: { alignItems: "center", flexDirection: "row", gap: 8, marginTop: 8 },
+  statusLabel: { color: colors.primary, fontFamily: fonts.bodySemiBold, fontSize: 16, lineHeight: 22 },
+  statusRule: { backgroundColor: colors.border, flex: 1, height: StyleSheet.hairlineWidth },
+  summaryBlock: { paddingHorizontal: 2 },
 });
