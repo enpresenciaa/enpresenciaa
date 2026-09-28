@@ -1,94 +1,110 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { FlatList as FlatListType, LayoutChangeEvent } from "react-native";
+import { FlatList, PixelRatio, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { OnboardingBackground } from "@/components/onboarding/OnboardingBackground";
-import { env } from "@/config/env";
 import { colors, fonts } from "@/config/onboarding-theme";
-import { BillingTestCheckout } from "@/features/billing/components/BillingTestCheckout";
-import { isStripeTestCheckoutVisible } from "@/features/billing/utils/billing.utils";
-import type { JourneyExerciseState, JourneyExerciseStatus } from "@/features/journey/domain/journey.types";
+import { JourneySegment } from "@/features/journey/components/JourneySegment";
+import type { JourneyFavoriteChange } from "@/features/journey/components/JourneySegment";
 import { useJourney, useSetExerciseFavorite } from "@/features/journey/hooks/useJourney";
+import type { JourneySegment as JourneySegmentModel } from "@/features/journey/utils/journey-segments";
+import { createJourneySegments, JOURNEY_EXERCISES_PER_SEGMENT } from "@/features/journey/utils/journey-segments";
 
-const background = require("../../../../assets/images/Camino.png");
+const JOURNEY_BACKGROUND_ASPECT_RATIO = 900 / 1900;
+const SEGMENT_OVERLAP = 1 / PixelRatio.get();
 
-const labels: Record<JourneyExerciseStatus, string> = {
-  available: "Disponible",
-  completed: "Completado",
-  future: "Próximamente",
-  locked_today: "Disponible mañana",
-};
+const backgrounds = [
+  require("../../../../assets/images/CAMINO OBS. VENADO.png"),
+  require("../../../../assets/images/CAMINO 1.png"),
+  require("../../../../assets/images/CAMINO 2 CONEJO.png"),
+  require("../../../../assets/images/CAMINO VENADO.png"),
+] as const;
 
-function ExerciseRow({ exercise }: { exercise: JourneyExerciseState }) {
+const emptyJourneyPreviewSegments: JourneySegmentModel[] = backgrounds.map((_, backgroundVariant) => ({
+  backgroundVariant,
+  exercises: [],
+  key: `journey-empty-preview-${backgroundVariant}`,
+}));
+
+export function JourneyScreen() {
   const router = useRouter();
-  const favorite = useSetExerciseFavorite();
-  const canOpen = exercise.status !== "future";
-  const isUpdating = favorite.isPending && favorite.variables?.exerciseId === exercise.id;
-
-  return (
-    <View style={[styles.row, !canOpen && styles.future]}>
-      <Pressable
-        accessibilityLabel={`${exercise.title}, ${labels[exercise.status]}`}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canOpen }}
-        disabled={!canOpen}
-        onPress={() => router.push({ pathname: "/exercise/[exerciseId]", params: { exerciseId: exercise.id } } as Href)}
-        style={({ pressed }) => [styles.main, pressed && styles.pressed]}
-      >
-        <View style={styles.position}><Text style={styles.positionText}>{exercise.globalPosition}</Text></View>
-        <View style={styles.copy}>
-          <Text numberOfLines={2} style={styles.title}>{exercise.title}</Text>
-          <Text style={styles.status}>{labels[exercise.status]}{exercise.estimatedDurationMinutes ? ` · ${exercise.estimatedDurationMinutes} min` : ""}</Text>
-        </View>
-      </Pressable>
-      <Pressable
-        accessibilityLabel={exercise.isFavorite ? `Quitar ${exercise.title} de favoritos` : `Agregar ${exercise.title} a favoritos`}
-        accessibilityRole="button"
-        accessibilityState={{ busy: isUpdating, selected: exercise.isFavorite }}
-        disabled={isUpdating}
-        onPress={() => favorite.mutate({ exerciseId: exercise.id, isFavorite: !exercise.isFavorite })}
-        style={({ pressed }) => [styles.favorite, pressed && styles.pressed]}
-      >
-        {isUpdating ? <ActivityIndicator color={colors.primary} size="small" /> : <Ionicons color={colors.primary} name={exercise.isFavorite ? "heart" : "heart-outline"} size={24} />}
-      </Pressable>
-    </View>
-  );
-}
-
-export function JourneyScreen({ showStartHeader = false }: { showStartHeader?: boolean }) {
   const journey = useJourney();
-  const completed = journey.data?.exercises.filter(item => item.status === "completed").length ?? 0;
-  const showStripeTestCheckout = isStripeTestCheckoutVisible(__DEV__, env.enableStripeTestCheckout);
+  const favorite = useSetExerciseFavorite();
+  // Stays pending until the journey refetch settles, so the star never flickers back.
+  const pendingFavorite = favorite.isPending ? favorite.variables : null;
+  const listRef = useRef<FlatListType<ReturnType<typeof createJourneySegments>[number]>>(null);
+  const [listWidth, setListWidth] = useState(0);
+  const exercises = useMemo(() => journey.data?.exercises ?? [], [journey.data?.exercises]);
+  const segments = useMemo(() => createJourneySegments(exercises), [exercises]);
+  const visibleSegments = segments.length > 0 ? segments : emptyJourneyPreviewSegments;
+  const segmentHeight = listWidth > 0 ? PixelRatio.roundToNearestPixel(listWidth / JOURNEY_BACKGROUND_ASPECT_RATIO) : 0;
+  const segmentStride = segmentHeight > 0 ? segmentHeight - SEGMENT_OVERLAP : 0;
+  const currentExerciseIndex = exercises.findIndex(item => item.status === "available" || item.status === "locked_today");
+  const initialSegmentIndex = segments.length === 0 ?
+    0 :
+      Math.min(
+        Math.floor((currentExerciseIndex >= 0 ? currentExerciseIndex : exercises.length - 1) / JOURNEY_EXERCISES_PER_SEGMENT),
+        segments.length - 1,
+      );
 
-  if (journey.isSuccess && journey.data.exercises.length === 0) {
-    return <OnboardingBackground backgroundColor="#364B26" source={background} />;
-  }
+  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextWidth = PixelRatio.roundToNearestPixel(event.nativeEvent.layout.width);
+    setListWidth(currentWidth => currentWidth === nextWidth ? currentWidth : nextWidth);
+  }, []);
+
+  const { isPending: isFavoritePending, mutate: setFavorite } = favorite;
+  const handleToggleFavorite = useCallback((change: JourneyFavoriteChange) => {
+    if (!isFavoritePending) {
+      setFavorite(change);
+    }
+  }, [isFavoritePending, setFavorite]);
+
+  const handleOpenExercise = useCallback((exerciseId: string) => {
+    router.push({ pathname: "/exercise/[exerciseId]", params: { exerciseId } } as Href);
+  }, [router]);
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.screen}>
-      <View style={styles.header}>
-        {showStartHeader ? (
-          <View style={styles.startSection}>
-            <Text accessibilityRole="header" style={styles.startTitle}>Empezar</Text>
-            <Text style={styles.startDescription}>Este es tu espacio para detenerte, practicar y continuar paso a paso.</Text>
-          </View>
-        ) : null}
-        <Text accessibilityRole="header" style={styles.heading}>Mi camino</Text>
-        <Text style={styles.subtitle}>{journey.data?.exercises.length ? `${completed} de ${journey.data.exercises.length} completados` : "Avanza a tu propio ritmo"}</Text>
-        {showStripeTestCheckout ? <View style={styles.testCheckout}><BillingTestCheckout /></View> : null}
-      </View>
       {journey.isPending ? <State icon="hourglass-outline" message="Preparando tu camino…" /> : null}
       {journey.isError ? <State action={() => void journey.refetch()} icon="cloud-offline-outline" message="No pudimos cargar tu camino. Revisa tu conexión." /> : null}
       {journey.isSuccess ? (
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={journey.data.exercises}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <ExerciseRow exercise={item} />}
-          showsVerticalScrollIndicator={false}
-        />
+        <View onLayout={handleListLayout} style={styles.listContainer}>
+          {listWidth > 0 && segmentStride > 0 ? (
+            <FlatList
+              data={visibleSegments}
+              decelerationRate="fast"
+              extraData={pendingFavorite}
+              getItemLayout={(_, index) => ({ index, length: segmentStride, offset: segmentStride * index })}
+              initialNumToRender={3}
+              initialScrollIndex={initialSegmentIndex}
+              inverted
+              keyExtractor={segment => segment.key}
+              maxToRenderPerBatch={3}
+              onScrollToIndexFailed={({ index }) => {
+                listRef.current?.scrollToOffset({ animated: false, offset: index * segmentStride });
+              }}
+              ref={listRef}
+              renderItem={({ item }) => (
+                <View style={{ marginBottom: -SEGMENT_OVERLAP }}>
+                  <JourneySegment
+                    backgroundSource={backgrounds[item.backgroundVariant]}
+                    height={segmentHeight}
+                    onOpenExercise={handleOpenExercise}
+                    onToggleFavorite={handleToggleFavorite}
+                    pendingFavorite={pendingFavorite}
+                    segment={item}
+                    width={listWidth}
+                  />
+                </View>
+              )}
+              showsVerticalScrollIndicator={false}
+              windowSize={5}
+            />
+          ) : null}
+        </View>
       ) : null}
     </SafeAreaView>
   );
@@ -105,27 +121,10 @@ function State({ action, icon, message }: { action?: () => void; icon: keyof typ
 }
 
 const styles = StyleSheet.create({
-  copy: { flex: 1, marginLeft: 12 },
-  favorite: { alignItems: "center", height: 52, justifyContent: "center", marginHorizontal: 7, width: 44 },
-  future: { opacity: 0.62 },
-  header: { paddingBottom: 12, paddingHorizontal: 22, paddingTop: 10 },
-  heading: { color: colors.text, fontFamily: fonts.title, fontSize: 32 },
-  list: { paddingBottom: 32, paddingHorizontal: 20, paddingTop: 8 },
-  main: { alignItems: "center", flex: 1, flexDirection: "row", minHeight: 78, paddingLeft: 14 },
-  position: { alignItems: "center", backgroundColor: "#F1E8D4", borderRadius: 22, height: 44, justifyContent: "center", width: 44 },
-  positionText: { color: colors.primary, fontFamily: fonts.bodySemiBold, fontSize: 14 },
-  pressed: { opacity: 0.68 },
+  listContainer: { backgroundColor: "#17261D", flex: 1 },
   retry: { backgroundColor: colors.primary, borderRadius: 22, marginTop: 18, paddingHorizontal: 24, paddingVertical: 11 },
   retryText: { color: "#FFFFFF", fontFamily: fonts.bodySemiBold, fontSize: 14 },
-  row: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "rgba(54,75,38,0.22)", borderRadius: 18, borderWidth: 1, flexDirection: "row", marginBottom: 12, overflow: "hidden" },
   screen: { backgroundColor: colors.background, flex: 1 },
   state: { alignItems: "center", flex: 1, justifyContent: "center", paddingHorizontal: 32 },
   stateText: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 320, textAlign: "center" },
-  startDescription: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, marginTop: 5, maxWidth: 440 },
-  startSection: { marginBottom: 24 },
-  startTitle: { color: colors.text, fontFamily: fonts.title, fontSize: 38 },
-  status: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 11, marginTop: 5 },
-  subtitle: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12, marginTop: 2 },
-  testCheckout: { alignItems: "flex-start", marginTop: 8 },
-  title: { color: colors.text, fontFamily: fonts.bodySemiBold, fontSize: 15 },
 });
