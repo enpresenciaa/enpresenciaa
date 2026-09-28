@@ -10,6 +10,7 @@ export const BILLING_SUBSCRIPTION_STATUSES = [
 ] as const;
 
 export type BillingSubscriptionStatus = typeof BILLING_SUBSCRIPTION_STATUSES[number];
+export type CheckoutReturnResult = "cancelled" | "success";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -23,6 +24,19 @@ export function isHttpsUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function createCheckoutReturnUrl(supabaseUrl: string, result: CheckoutReturnResult): string {
+  const baseUrl = new URL(supabaseUrl);
+
+  if (baseUrl.protocol !== "https:") {
+    throw new Error("SUPABASE_URL_HTTPS_REQUIRED");
+  }
+
+  const returnUrl = new URL("/functions/v1/stripe-checkout-return", baseUrl);
+  returnUrl.searchParams.set("result", result);
+
+  return returnUrl.toString();
 }
 
 export function isUuid(value: unknown): value is string {

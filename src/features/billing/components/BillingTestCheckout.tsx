@@ -1,4 +1,7 @@
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import type { Href } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 
@@ -7,17 +10,16 @@ import { colors, fonts } from "@/config/onboarding-theme";
 import { createUuid } from "@/lib/uuid";
 import { useBillingSubscription, useCreateStripeCheckout, useInvalidateBillingSubscription } from "@/features/billing/hooks/useBilling";
 import type { CheckoutUiStatus } from "@/features/billing/types";
-import { classifyBrowserCompletion, runOnce } from "@/features/billing/utils/billing.utils";
-
-const ACTIVE_STATUSES = new Set(["active", "trialing"]);
+import { classifyBrowserCompletion, isBillingSubscriptionActive, parseCheckoutReturnResult, runOnce } from "@/features/billing/utils/billing.utils";
 
 export function BillingTestCheckout() {
+  const router = useRouter();
   const checkoutLockRef = useRef(false);
   const [uiStatus, setUiStatus] = useState<CheckoutUiStatus>("idle");
   const checkout = useCreateStripeCheckout();
   const invalidateBilling = useInvalidateBillingSubscription();
   const subscription = useBillingSubscription(uiStatus === "pending");
-  const confirmed = subscription.data ? ACTIVE_STATUSES.has(subscription.data.status) : false;
+  const confirmed = isBillingSubscriptionActive(subscription.data?.status);
 
   useEffect(() => {
     const appStateSubscription = AppState.addEventListener("change", nextState => {
@@ -37,12 +39,22 @@ export function BillingTestCheckout() {
       try {
         const checkoutUrl = await checkout.mutateAsync(createUuid());
         setUiStatus("browser_open");
-        const result = await WebBrowser.openBrowserAsync(checkoutUrl);
+        const redirectUrl = Linking.createURL("billing/return");
+        const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, redirectUrl);
         const completion = classifyBrowserCompletion(result.type);
 
         if (completion === "cancelled") {
           setUiStatus("cancelled");
           return;
+        }
+
+        if (result.type === "success") {
+          const returnResult = parseCheckoutReturnResult(result.url);
+
+          if (returnResult) {
+            router.push({ pathname: "/billing/return", params: { result: returnResult } } as Href);
+            return;
+          }
         }
 
         setUiStatus("pending");
@@ -53,7 +65,7 @@ export function BillingTestCheckout() {
     });
   }
 
-  const busy = uiStatus === "opening" || uiStatus === "browser_open";
+  const busy = uiStatus === "opening" || uiStatus === "browser_open" || uiStatus === "pending";
   const displayStatus: CheckoutUiStatus = confirmed ? "confirmed" : uiStatus;
 
   return (

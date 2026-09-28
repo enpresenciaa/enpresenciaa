@@ -4,8 +4,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { BackButton } from "@/components/onboarding/BackButton";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { env } from "@/config/env";
 import { colors, fonts } from "@/config/onboarding-theme";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { BillingTestCheckout } from "@/features/billing/components/BillingTestCheckout";
+import { useBillingSubscription } from "@/features/billing/hooks/useBilling";
+import { formatBillingPeriodEnd, getBillingSubscriptionStatusLabel, isStripeTestCheckoutVisible } from "@/features/billing/utils/billing.utils";
 import { useProfile } from "@/features/profile/hooks/useProfile";
 import { getProfileDisplayData } from "@/features/profile/utils/profile-display";
 
@@ -24,13 +28,17 @@ function SubscriptionRow({ icon, label }: SubscriptionRowProps) {
 }
 
 export function SubscriptionScreen() {
-  const { user } = useAuth();
+  const { status: authStatus, user } = useAuth();
   const { data: profile } = useProfile();
+  const subscription = useBillingSubscription();
   const profileDisplay = getProfileDisplayData(user, profile);
-  const metadata = user?.user_metadata ?? {};
-  const plan = typeof metadata.subscription_type === "string" ? metadata.subscription_type : "Plan sin configurar";
-  const card = typeof metadata.card_last4 === "string" ? `Tarjeta terminada en ${metadata.card_last4}` : "No hay tarjeta registrada";
-  const expiration = typeof metadata.subscription_expires_at === "string" ? metadata.subscription_expires_at : "Sin vencimiento disponible";
+  const billing = subscription.data;
+  const showStripeTestCheckout = authStatus === "permanent" && isStripeTestCheckoutVisible(__DEV__, env.enableStripeTestCheckout);
+  const plan = billing ? "Plan En Presenciaa" : "Sin suscripción";
+  const status = billing ? `Estado: ${getBillingSubscriptionStatusLabel(billing.status)}` : "No hay una suscripción registrada";
+  const periodEnd = billing
+    ? `${billing.cancel_at_period_end ? "Termina" : "Próxima renovación"}: ${formatBillingPeriodEnd(billing.current_period_end)}`
+    : "Activa el pago de prueba para validar la integración";
 
   return (
     <View style={styles.screen}>
@@ -43,8 +51,10 @@ export function SubscriptionScreen() {
             <Ionicons color={colors.text} name="diamond-outline" size={29} />
             <Text style={styles.planText}>{plan}</Text>
           </View>
-          <SubscriptionRow icon="card-outline" label={card} />
-          <SubscriptionRow icon="calendar-outline" label={expiration} />
+          <SubscriptionRow icon="pulse-outline" label={status} />
+          <SubscriptionRow icon="calendar-outline" label={periodEnd} />
+          {subscription.isError ? <Text accessibilityRole="alert" style={styles.error}>No pudimos consultar tu suscripción.</Text> : null}
+          {showStripeTestCheckout ? <View style={styles.checkout}><BillingTestCheckout /></View> : null}
 
           <Pressable
             accessibilityRole="button"
@@ -62,6 +72,8 @@ export function SubscriptionScreen() {
 
 const styles = StyleSheet.create({
   content: { alignSelf: "center", maxWidth: 560, paddingBottom: 40, paddingHorizontal: 24, paddingTop: 20, width: "100%" },
+  checkout: { marginTop: 18 },
+  error: { color: colors.error, fontFamily: fonts.body, fontSize: 13, marginTop: 4, textAlign: "center" },
   planText: { color: colors.text, fontFamily: fonts.body, fontSize: 18, marginLeft: 12 },
   planTitle: { alignItems: "center", flexDirection: "row", marginBottom: 15, paddingHorizontal: 5 },
   pressed: { opacity: 0.65 },

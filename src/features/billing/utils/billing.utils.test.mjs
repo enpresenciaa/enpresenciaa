@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import { classifyBrowserCompletion, isStripeTestCheckoutVisible, parseCheckoutUrl, runOnce } from "./billing.utils.ts";
+import {
+  classifyBrowserCompletion,
+  formatBillingPeriodEnd,
+  getBillingSubscriptionStatusLabel,
+  isBillingSubscriptionActive,
+  isStripeTestCheckoutVisible,
+  parseCheckoutUrl,
+  parseCheckoutReturnResult,
+  runOnce,
+} from "./billing.utils.ts";
 
 describe("billing mobile helpers", () => {
   test("requires development and the explicit flag", () => {
@@ -19,6 +28,22 @@ describe("billing mobile helpers", () => {
     expect(classifyBrowserCompletion("cancel")).toBe("cancelled");
     expect(classifyBrowserCompletion("dismiss")).toBe("cancelled");
     expect(classifyBrowserCompletion("opened")).toBe("returned");
+  });
+
+  test("accepts only the expected app checkout return", () => {
+    expect(parseCheckoutReturnResult("enpresenciaa://billing/return?result=success")).toBe("success");
+    expect(parseCheckoutReturnResult("enpresenciaa://billing/return?result=cancelled")).toBe("cancelled");
+    expect(parseCheckoutReturnResult("https://example.com/billing/return?result=success")).toBeNull();
+    expect(parseCheckoutReturnResult("enpresenciaa://billing/return?result=forged")).toBeNull();
+  });
+
+  test("derives subscription presentation from webhook-owned data", () => {
+    expect(isBillingSubscriptionActive("active")).toBe(true);
+    expect(isBillingSubscriptionActive("trialing")).toBe(true);
+    expect(isBillingSubscriptionActive("past_due")).toBe(false);
+    expect(getBillingSubscriptionStatusLabel("canceled")).toBe("Cancelada");
+    expect(getBillingSubscriptionStatusLabel("unexpected")).toBe("Estado desconocido");
+    expect(formatBillingPeriodEnd(null)).toBe("Sin fecha de renovación disponible");
   });
 
   test("blocks concurrent submissions", async () => {

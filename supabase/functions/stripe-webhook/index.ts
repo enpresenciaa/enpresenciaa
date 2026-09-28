@@ -6,6 +6,7 @@ import { errorResponse, jsonResponse } from "../_shared/http.ts";
 
 const SUPPORTED_EVENTS = new Set([
   "checkout.session.completed",
+  "checkout.session.expired",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
@@ -90,6 +91,33 @@ Deno.serve(async request => {
     const stripe = new Stripe(requireStripeTestKey(requireServerEnv("STRIPE_SECRET_KEY")));
     let subscription: Stripe.Subscription;
     let checkoutAttemptId: string | undefined;
+
+    if (event.type === "checkout.session.expired") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      checkoutAttemptId = isUuid(session.metadata?.attempt_id) ? session.metadata.attempt_id : undefined;
+
+      if (checkoutAttemptId) {
+        const { error: attemptUpdateError } = await admin.from("billing_checkout_attempts")
+          .update({ status: "expired" })
+          .eq("attempt_id", checkoutAttemptId)
+          .in("status", ["creating", "open"]);
+
+        if (attemptUpdateError) {
+          throw attemptUpdateError;
+        }
+      }
+
+      const { error: eventUpdateError } = await admin.from("stripe_webhook_events").update({
+        processed_at: new Date().toISOString(),
+        processing_status: "processed",
+      }).eq("stripe_event_id", event.id);
+
+      if (eventUpdateError) {
+        throw eventUpdateError;
+      }
+
+      return jsonResponse({ received: true });
+    }
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;

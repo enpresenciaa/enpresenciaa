@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { isBillingSubscriptionStatus, isHttpsUrl, isUuid, requireStripeTestKey, unixSecondsToIso } from "./billing";
+import { createCheckoutReturnUrl, isBillingSubscriptionStatus, isHttpsUrl, isUuid, requireStripeTestKey, unixSecondsToIso } from "./billing";
 
 describe("billing edge helpers", () => {
   test("accepts only HTTPS checkout URLs", () => {
@@ -22,6 +22,15 @@ describe("billing edge helpers", () => {
   test("maps Stripe timestamps", () => {
     expect(unixSecondsToIso(0)).toBe("1970-01-01T00:00:00.000Z");
     expect(unixSecondsToIso(null)).toBeNull();
+  });
+
+  test("builds fixed HTTPS return URLs inside the Supabase project", () => {
+    expect(createCheckoutReturnUrl("https://project.supabase.co", "success"))
+      .toBe("https://project.supabase.co/functions/v1/stripe-checkout-return?result=success");
+    expect(createCheckoutReturnUrl("https://project.supabase.co/", "cancelled"))
+      .toBe("https://project.supabase.co/functions/v1/stripe-checkout-return?result=cancelled");
+    expect(() => createCheckoutReturnUrl("http://project.supabase.co", "success"))
+      .toThrow("SUPABASE_URL_HTTPS_REQUIRED");
   });
 });
 
